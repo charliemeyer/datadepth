@@ -1,0 +1,14 @@
+body {
+	text-align: center;
+	color: #F5F5F5;
+	background-color: #424242;
+	font-family: 'Inconsolata', monospace;
+}
+
+#plane {
+/*	width: 800px;
+	height: 600px;*/
+	
+	margin: 0 auto;
+	background-color: #F5F5F5;
+}
