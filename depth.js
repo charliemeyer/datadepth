@@ -3,29 +3,36 @@ var ctx = canvas.getContext("2d");
 var point_size = 3;
 var points = [];
 var point_color = "#212121";
-var median_color = "#"
 
 $(document).ready(function(){
+    clear_points();
     $("#plane").click(handle_click);
+    $("#clear_points").click(clear_points);
 });
+
+function clear_points() {
+    points = [];
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    draw_point(canvas.width / 2, canvas.height / 2, "#F44336", 5);
+}
 
 function handle_click(e) {
     var rect = canvas.getBoundingClientRect();
     var x = event.clientX - rect.left;
     var y = event.clientY - rect.top;
     points.push([x, y]);
-    context.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     for (var i = 0; i < points.length; i++) {
-        draw_point(points[i][0], points[i][1], point_color);
+        draw_point(points[i][0], points[i][1], point_color, point_size);
     }
     draw_median();
 }
 
-function draw_point(x, y, color) {
+function draw_point(x, y, color, radius) {
     // alert("got a point at " + x + " " + y);
     ctx.fillStyle = color;
     ctx.beginPath(); //Start path
-    ctx.arc(x, y, point_size, 0, Math.PI * 2, true); 
+    ctx.arc(x, y, radius, 0, Math.PI * 2, true); 
     ctx.fill();
     return [x,y];
 }
@@ -46,5 +53,5 @@ function draw_median() {
     med_y = med_y / num_points;
 
     // step 2: draw that median
-    draw_point(med_x, med_y, "#F44336");
+    draw_point(med_x, med_y, "#F44336", 5);
 }
