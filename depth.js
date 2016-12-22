@@ -2,9 +2,14 @@
 // Global Resources //
 //////////////////////
 
-var canvas = document.getElementById("plane");
-var ctx = canvas.getContext("2d");
+var paper_w = $("#plane").height();
+var paper_h = $("#plane").width();
+var plane = document.getElementById("plane");
+
+var paper = Raphael(plane, 800, 600);
+paper.rect(0, 0, 800, 600, 10).attr({fill: "#fff", stroke: "none"});
 var point_size = 3;
+var median_size = 5;
 var points = [];
 var point_color = "#212121";
 var median_type = parseInt($("#medianpicker").val());
@@ -26,18 +31,17 @@ $(document).ready(function() {
 
 // Clear the points
 function clear_points() {
-    points = [];
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    draw_point(canvas.width / 2, canvas.height / 2, "#F44336", 5);
+    paper.clear();
+    draw_point(paper_w/2, paper_h/2, "#F44336", 25);
 }
 
 // Add the point where they clicked, recompute median
 function handle_click(e) {
-    var rect = canvas.getBoundingClientRect();
+    var rect = plane.getBoundingClientRect();
     var x = event.clientX - rect.left;
     var y = event.clientY - rect.top;
     points.push([x, y]);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    paper.clear();
     for (var i = 0; i < points.length; i++) {
         draw_point(points[i][0], points[i][1], point_color, point_size);
     }
@@ -72,7 +76,7 @@ function draw_mean_point() {
     }
     mean_x = mean_x / num_points;
     mean_y = mean_y / num_points;
-    draw_point(mean_x, mean_y, "#388E3C", 5);
+    draw_point(mean_x, mean_y, "#388E3C", median_size);
 }
 
 function draw_median_x_y() {
@@ -87,7 +91,7 @@ function draw_median_x_y() {
 
     med_x = median(xs);
     med_y = median(ys);
-    draw_point(med_x, med_y, "#F44336", 5);
+    draw_point(med_x, med_y, "#F44336", median_size);
 }
 
 
@@ -98,13 +102,11 @@ function draw_median_x_y() {
 // Returns the median element in list of numbers l
 function median(l) {
     l.sort(function(a,b){return a-b});
-    console.log(l);
     len = l.length
     if(len == 1) {
         return l[0];
     }
     if(l.length % 2 != 0) {
-        console.log(len/2);
         return l[Math.floor(len/2)];
     } else {
         return (l[len/2]+l[len/2+1])/2;
@@ -113,14 +115,15 @@ function median(l) {
 
 // Draw point on canvas at x y with given color and radius
 function draw_point(x, y, color, radius) {
-    ctx.fillStyle = color;
-    ctx.beginPath(); //Start path
-    ctx.arc(x, y, radius, 0, Math.PI * 2, true); 
-    ctx.fill();
-    return [x,y];
+    print_point(x,y);
+    new_circ = paper.circle(x, y, radius).attr({fill: color, stroke: "#FFFFFF"});
+    new_circ.hover(function(){
+        print_point(new_circ.attr("x"),new_circ.attr("y"));
+    });
+    return new_circ;
 }
 
 // Debug output for a point
 function print_point(x,y) {
-    alert("point at (" + x +", " + y + ")");
+    console.log("point at (" + x +", " + y + ")");
 }
