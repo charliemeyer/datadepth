@@ -40,18 +40,50 @@ function draw_point(x, y, color, radius) {
 // lmao just gonna get the avg tbh
 function draw_median() {
     // step 1: get that median
-    var med_x = 0;
-    var med_y = 0;
+    var mean_x = 0;
+    var mean_y = 0;
     var num_points = points.length;
 
+    xs = []
+    ys = []
+
     for (var i = 0; i < num_points; i++) {
-        med_x += points[i][0];
-        med_y += points[i][1];
+        mean_x += points[i][0];
+        mean_y += points[i][1];
+        xs.push(points[i][0]);
+        ys.push(points[i][1]);
     }
 
-    med_x = med_x / num_points;
-    med_y = med_y / num_points;
+    med_x = median(xs);
+    med_y = median(ys);
+
+    mean_x = mean_x / num_points;
+    mean_y = mean_y / num_points;
 
     // step 2: draw that median
+    // alert("median");
+    // print_point(med_x,med_y);
     draw_point(med_x, med_y, "#F44336", 5);
+    // alert("mean");
+    // print_point(mean_x,mean_y);
+    draw_point(mean_x, mean_y, "#388E3C", 5);
+}
+
+function median(l) {
+    l.sort(function(a,b){return a-b});
+    console.log(l);
+    len = l.length
+    if(len == 1) {
+        return l[0];
+    }
+    if(l.length % 2 != 0) {
+        console.log(len/2);
+        return l[Math.floor(len/2)];
+    } else {
+        return (l[len/2]+l[len/2+1])/2;
+    }
+}
+
+function print_point(x,y) {
+    alert("point at (" + x +", " + y + ")");
 }
