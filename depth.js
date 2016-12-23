@@ -2,21 +2,22 @@
 // Global Resources //
 //////////////////////
 
-var paper_w = $("#plane").height();
-var paper_h = $("#plane").width();
+var paper_w = $("#plane").width();
+var paper_h = $("#plane").height();
 var plane = document.getElementById("plane");
 
 var paper = Raphael(plane, 800, 600);
 paper.rect(0, 0, 800, 600, 10).attr({fill: "#fff", stroke: "none"});
-var point_size = 3;
-var median_size = 5;
+var point_size = 5;
+var median_size = 7;
 var points = [];
 var point_color = "#212121";
 var median_type = parseInt($("#medianpicker").val());
+var median;
 
 // Register all the event handlers
 $(document).ready(function() {
-    clear_points();
+    median = draw_point(paper_w/2, paper_h/2, "#F44336", 7);
     $("#plane").click(handle_click);
     $("#clear_points").click(clear_points);
     $("#medianpicker").change(function(){
@@ -31,8 +32,21 @@ $(document).ready(function() {
 
 // Clear the points
 function clear_points() {
-    paper.clear();
-    draw_point(paper_w/2, paper_h/2, "#F44336", 25);
+    med_x = median.attr("cx");
+    med_y = median.attr("cy");
+    for (var i = 0; i < points.length; i++) {
+        if (i+1 < points.length) {
+            points[i].animate({cx: med_x, cy: med_y}, 500 - 10*i);
+        } else {
+            points[i].animate({cx: med_x, cy: med_y}, 200, 
+                function() {
+                    paper.clear();
+                    points = [];
+                    median = draw_point(med_x, med_y, "#F44336", 7);
+                    median.animate({cx:paper_w/2, cy:paper_h/2}, 200)
+                });
+        }
+    }
 }
 
 // Add the point where they clicked, recompute median
@@ -40,11 +54,10 @@ function handle_click(e) {
     var rect = plane.getBoundingClientRect();
     var x = event.clientX - rect.left;
     var y = event.clientY - rect.top;
-    points.push([x, y]);
-    paper.clear();
-    for (var i = 0; i < points.length; i++) {
-        draw_point(points[i][0], points[i][1], point_color, point_size);
-    }
+
+    new_point = draw_point(x, y, point_color, point_size);
+    points.push(new_point);
+
     draw_median();
 }
 
@@ -71,12 +84,12 @@ function draw_mean_point() {
     var mean_y = 0;
     var num_points = points.length;
     for (var i = 0; i < num_points; i++) {
-        mean_x += points[i][0];
-        mean_y += points[i][1];
+        mean_x += points[i].attr("cx");
+        mean_y += points[i].attr("cy");
     }
     mean_x = mean_x / num_points;
     mean_y = mean_y / num_points;
-    draw_point(mean_x, mean_y, "#388E3C", median_size);
+    median.animate({cx: mean_x, cy: mean_y}, 200);
 }
 
 function draw_median_x_y() {
@@ -85,13 +98,13 @@ function draw_median_x_y() {
 
     var num_points = points.length;
     for (var i = 0; i < num_points; i++) {
-        xs.push(points[i][0]);
-        ys.push(points[i][1]);
+        xs.push(points[i].attr("cx"));
+        ys.push(points[i].attr("cy"));
     }
 
-    med_x = median(xs);
-    med_y = median(ys);
-    draw_point(med_x, med_y, "#F44336", median_size);
+    med_x = get_median(xs);
+    med_y = get_median(ys);
+    median.animate({cx: med_x, cy: med_y}, 200);
 }
 
 
@@ -100,16 +113,16 @@ function draw_median_x_y() {
 ///////////////
 
 // Returns the median element in list of numbers l
-function median(l) {
+function get_median(l) {
     l.sort(function(a,b){return a-b});
-    len = l.length
+    len = l.length;
     if(len == 1) {
         return l[0];
     }
     if(l.length % 2 != 0) {
         return l[Math.floor(len/2)];
     } else {
-        return (l[len/2]+l[len/2+1])/2;
+        return (l[len/2-1]+l[len/2])/2;
     }
 }
 
@@ -118,7 +131,8 @@ function draw_point(x, y, color, radius) {
     print_point(x,y);
     new_circ = paper.circle(x, y, radius).attr({fill: color, stroke: "#FFFFFF"});
     new_circ.hover(function(){
-        print_point(new_circ.attr("x"),new_circ.attr("y"));
+        // console.log("hover output");
+        //print_point(this.attr("cx"),this.attr("cy"));
     });
     return new_circ;
 }
