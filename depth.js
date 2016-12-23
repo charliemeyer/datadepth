@@ -7,13 +7,15 @@ var paper_h = $("#plane").height();
 var plane = document.getElementById("plane");
 
 var paper = Raphael(plane, 800, 600);
-paper.rect(0, 0, 800, 600, 10).attr({fill: "#fff", stroke: "none"});
+paper.rect(0, 0, 800, 600, 10).attr({fill: "#F5F5F5", stroke: "none"});
 var point_size = 5;
 var median_size = 7;
 var points = [];
 var point_color = "#212121";
 var median_type = parseInt($("#medianpicker").val());
 var median;
+var hulls = [];
+var hull_lines = [];
 
 // Register all the event handlers
 $(document).ready(function() {
@@ -63,12 +65,22 @@ function handle_click(e) {
 
 // Draws the median of points based on currently chosen definition
 function draw_median() {
+    for (var i = 0; i < points.length; i++) {
+        points[i].animate({fill:"#000"});
+        points[i].removeData();
+    }
+    for(var i = 0; i < hull_lines.length; i++) {
+        hull_lines[i].remove();
+    }
     switch(median_type) {
         case 0: 
             draw_mean_point()
             break;
         case 1:
             draw_median_x_y();
+            break;
+        case 2:
+            draw_hull_median();
             break;
         default:
             alert("bad option for median type used " + median_type);
@@ -108,6 +120,145 @@ function draw_median_x_y() {
 }
 
 
+function draw_hull_median() {
+    total_points = points.length;
+
+    for (var i = 0; i < points.length; i++) {
+        points[i].data("hull_i", 100000);
+    }
+
+    if (total_points == 1) {
+        median.animate({cx: points[0].attr("cx"), cy: points[0].attr("cy")}, 200);
+        return;
+    }
+
+    if (total_points == 2) {
+        median.animate({cx: (points[0].attr("cx") + points[1].attr("cx"))/2, 
+                        cy: (points[0].attr("cy") + points[1].attr("cy"))/2}, 200);
+        return;
+    }
+
+    new_hull = make_hull(0); 
+    hull = [new_hull];    
+
+    points_remaining = total_points - new_hull.length;
+
+    hull_i = 1;
+
+    while (points_remaining > 2) {
+        new_hull = make_hull(hull_i);
+        hulls.push(new_hull);
+        points_remaining -= new_hull.length;
+        hull_i += 1
+    }
+
+    med_x = 0;
+    med_y = 0;
+    num_non_hull = 0;
+
+    for (var i = 0; i < points.length; i++) {
+        if (points[i].data("hull_i") >= (hull_i - 1)) {
+            med_x += points[i].attr("cx");
+            med_y += points[i].attr("cy");
+            num_non_hull += 1;
+        }
+    }
+    
+    median.animate({cx: med_x / num_non_hull, cy: med_y / num_non_hull}, 200);
+    console.log("there are " + num_non_hull + " points being averaged to make median");
+}
+
+
+// FACT: there are three undone points to hull up when you get here or you're screwed
+function make_hull(hull_i) {
+    xs = [];
+
+    // Get first hull point
+    var this_hull = [];
+    for (var i = 0; i < points.length; i++) {
+        xs.push(points[i].attr("cx"));
+    }
+
+    first_i = index_of_max(xs, hull_i);
+    this_hull.push(first_i);
+    first = points[first_i];
+    first.data("hull_i", hull_i);
+    first.animate({fill:"#3D5AFE"},200);
+
+    // get second hull point
+    angles = [];
+    x1 = first.attr("cx");
+    y1 = first.attr("cy");
+    for(var i = 0; i < points.length; i++) {
+        if(i != first_i) {
+            x2 = points[i].attr("cx");
+            y2 = points[i].attr("cy");
+            angles.push(Math.atan((y2-y1)/(x2-x1)));
+        } else {
+            angles.push(-10000000);
+        }
+    }
+    first_i = index_of_max(angles, hull_i);
+    this_hull.push(first_i);
+    first = points[first_i];
+    first.data("hull_i", hull_i);
+    first.animate({fill:"#3D5AFE"},200);
+    
+    // now we get the general case
+    next_i = -1
+
+    while (next_i != this_hull[0]) {
+        angles = [];
+
+        first_hull_i = this_hull[this_hull.length-2];
+        second_hull_i = this_hull[this_hull.length-1];
+        
+        hull_lines.push(draw_path(points[first_hull_i], points[second_hull_i]));
+
+        for(var i = 0; i < points.length; i++) {
+            if(i != first_hull_i && i != second_hull_i) {
+                angles.push(angle_between3(points[first_hull_i], points[second_hull_i], points[i]));
+            } else {
+                angles.push(-10000000);
+            }
+        }
+        next_i = index_of_max(angles, hull_i);
+        if (this_hull[0] != next_i) {
+            this_hull.push(next_i);
+        }
+        points[next_i].data("hull_i", hull_i);
+        points[next_i].animate({fill:"#3D5AFE"},200);
+    }
+
+    hull_lines.push(draw_path(points[this_hull[0]], points[this_hull[this_hull.length-1]]));
+
+    console.log("computed hull with index: " + hull_i);
+
+    return this_hull;
+}
+
+// DANGEROUS: this is now in parallel with the state of the points YIKES
+// exclude that index if it happens to be associated with a point with valid data under the key
+// given by exclude in its data dict
+function index_of_max(l, hull_i) {
+    if (l.length === 0) {
+        return -1;
+    }
+
+    var max = -10000000000;
+    var max_i = -1;
+
+    for (var i = 0; i < l.length; i++) {
+        if ((points[i].data("hull_i") >= hull_i) && l[i] > max) { // i.e. only look at unhulled ones
+            max_i = i;
+            max = l[i];
+        }
+    }
+
+    return max_i;
+}
+
+
 ///////////////
 // Utilities //
 ///////////////
@@ -128,7 +279,7 @@ function get_median(l) {
 
 // Draw point on canvas at x y with given color and radius
 function draw_point(x, y, color, radius) {
-    print_point(x,y);
+    // print_point(x,y);
     new_circ = paper.circle(x, y, radius).attr({fill: color, stroke: "#FFFFFF"});
     new_circ.hover(function(){
         // console.log("hover output");
@@ -141,3 +292,26 @@ function draw_point(x, y, color, radius) {
 function print_point(x,y) {
     console.log("point at (" + x +", " + y + ")");
 }
+
+// returns the angle p1, p2, p3, centered at p2
+function angle_between3(p1,p2,p3) {
+    x1 = p1.attr("cx");
+    y1 = p1.attr("cy");
+    
+    x2 = p2.attr("cx");
+    y2 = p2.attr("cy");
+    
+    x3 = p3.attr("cx");
+    y3 = p3.attr("cy");
+    
+    a = Math.sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2));
+    b = Math.sqrt((x2-x3)*(x2-x3)+(y2-y3)*(y2-y3));
+    c = Math.sqrt((x1-x3)*(x1-x3)+(y1-y3)*(y1-y3));
+
+    return Math.acos((a*a+b*b-c*c)/(2*a*b))
+}
+
+function draw_path(p1, p2) {
+    return paper.path(["M", p1.attr("cx"), p1.attr("cy"), "L", p2.attr("cx"), p2.attr("cy")]);
+}
+
