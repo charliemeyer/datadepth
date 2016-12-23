@@ -7,9 +7,9 @@ var paper_h = $("#plane").height();
 var plane = document.getElementById("plane");
 
 var paper = Raphael(plane, 800, 600);
-paper.rect(0, 0, 800, 600, 10).attr({fill: "#F5F5F5", stroke: "none"});
-var point_size = 5;
-var median_size = 7;
+// paper.rect(0, 0, 800, 600, 10).attr({fill: "#F5F5F5", stroke: "none"});
+var point_size = 6;
+var median_size = 8;
 var points = [];
 var point_color = "#212121";
 var median_type = parseInt($("#medianpicker").val());
@@ -121,6 +121,7 @@ function draw_median_x_y() {
 
 
 function draw_hull_median() {
+    hulls = []
     total_points = points.length;
 
     for (var i = 0; i < points.length; i++) {
@@ -213,7 +214,7 @@ function make_hull(hull_i) {
         first_hull_i = this_hull[this_hull.length-2];
         second_hull_i = this_hull[this_hull.length-1];
         
-        hull_lines.push(draw_path(points[first_hull_i], points[second_hull_i]));
+        hull_lines.push(draw_path(points[first_hull_i], points[second_hull_i], hull_i));
 
         for(var i = 0; i < points.length; i++) {
             if(i != first_hull_i && i != second_hull_i) {
@@ -230,7 +231,7 @@ function make_hull(hull_i) {
         points[next_i].animate({fill:"#3D5AFE"},200);
     }
 
-    hull_lines.push(draw_path(points[this_hull[0]], points[this_hull[this_hull.length-1]]));
+    hull_lines.push(draw_path(points[this_hull[0]], points[this_hull[this_hull.length-1]], hull_i));
 
     console.log("computed hull with index: " + hull_i);
 
@@ -311,7 +312,11 @@ function angle_between3(p1,p2,p3) {
     return Math.acos((a*a+b*b-c*c)/(2*a*b))
 }
 
-function draw_path(p1, p2) {
-    return paper.path(["M", p1.attr("cx"), p1.attr("cy"), "L", p2.attr("cx"), p2.attr("cy")]);
+function draw_path(p1, p2, hull_i) {
+    colors = ["#FF8A65","#FF7043","#FF5722","#F4511E","#E64A19","#D84315","#BF360C"];
+    p =paper.path(["M", p1.attr("cx"), p1.attr("cy"), "L", p2.attr("cx"), p2.attr("cy")]);
+    p.attr({stroke:colors[hull_i % colors.length],"stroke-width":2});
+    p.toBack();
+    return p;
 }
 
