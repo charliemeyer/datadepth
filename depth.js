@@ -15,7 +15,9 @@ var point_color = "#212121";
 var median_type = parseInt($("#medianpicker").val());
 var median;
 var hulls = [];
+// var bogus_med_med_points = [];
 var hull_lines = [];
+var cg_lines = [];
 
 // Register all the event handlers
 $(document).ready(function() {
@@ -65,13 +67,17 @@ function handle_click(e) {
 
 // Draws the median of points based on currently chosen definition
 function draw_median() {
-    for (var i = 0; i < points.length; i++) {
+    for (var i = 0; i < points.length; i++) {  
         points[i].animate({fill:"#000"});
         points[i].removeData();
     }
     for(var i = 0; i < hull_lines.length; i++) {
         hull_lines[i].remove();
     }
+    for(var i = 0; i < cg_lines.length; i++) {
+        cg_lines[i].remove();
+    }
+    median.toFront();
     switch(median_type) {
         case 0: 
             draw_mean_point()
@@ -81,6 +87,9 @@ function draw_median() {
             break;
         case 2:
             draw_hull_median();
+            break;
+        case 3:
+            draw_simplicial_median();
             break;
         default:
             alert("bad option for median type used " + median_type);
@@ -180,7 +189,7 @@ function make_hull(hull_i) {
         xs.push(points[i].attr("cx"));
     }
 
-    first_i = index_of_max(xs, hull_i);
+    first_i = index_of_max_for_hull(xs, hull_i);
     this_hull.push(first_i);
     first = points[first_i];
     first.data("hull_i", hull_i);
@@ -199,7 +208,7 @@ function make_hull(hull_i) {
             angles.push(-10000000);
         }
     }
-    first_i = index_of_max(angles, hull_i);
+    first_i = index_of_max_for_hull(angles, hull_i);
     this_hull.push(first_i);
     first = points[first_i];
     first.data("hull_i", hull_i);
@@ -214,7 +223,7 @@ function make_hull(hull_i) {
         first_hull_i = this_hull[this_hull.length-2];
         second_hull_i = this_hull[this_hull.length-1];
         
-        hull_lines.push(draw_path(points[first_hull_i], points[second_hull_i], hull_i));
+        hull_lines.push(draw_path(points[first_hull_i], points[second_hull_i], hull_i, 2));
 
         for(var i = 0; i < points.length; i++) {
             if(i != first_hull_i && i != second_hull_i) {
@@ -223,7 +232,7 @@ function make_hull(hull_i) {
                 angles.push(-10000000);
             }
         }
-        next_i = index_of_max(angles, hull_i);
+        next_i = index_of_max_for_hull(angles, hull_i);
         if (this_hull[0] != next_i) {
             this_hull.push(next_i);
         }
@@ -231,7 +240,7 @@ function make_hull(hull_i) {
         points[next_i].animate({fill:"#3D5AFE"},200);
     }
 
-    hull_lines.push(draw_path(points[this_hull[0]], points[this_hull[this_hull.length-1]], hull_i));
+    hull_lines.push(draw_path(points[this_hull[0]], points[this_hull[this_hull.length-1]], hull_i, 2));
 
     console.log("computed hull with index: " + hull_i);
 
@@ -241,7 +250,7 @@ function make_hull(hull_i) {
 // DANGEROUS: this is now in parallel with the state of the points YIKES
 // exclude that index if it happens to be associated with a point with valid data under the key
 // given by exclude in its data dict
-function index_of_max(l, hull_i) {
+function index_of_max_for_hull(l, hull_i) {
     if (l.length === 0) {
         return -1;
     }
@@ -257,6 +266,74 @@ function index_of_max(l, hull_i) {
     }
 
     return max_i;
+}
+
+// three cheers for n^4 time holy heack baby
+function draw_simplicial_median() {
+    triangles = [];
+    for(var i = 0; i < points.length; i++) {
+        for(var j = 0; j < points.length; j++){
+            if (j != i) {
+                for(var k = 0; k < points.length; k++){
+                    if (k != i && k != j) {
+                        triangles.push([points[i], points[j], points[k]]);
+                    }
+                }
+                cg_lines.push(draw_path(points[i], points[j], -1, 1));
+            }
+        }
+    }
+
+    simp_depths = [];
+
+    for(var i = 0; i < points.length; i++) {
+        points_inside = 0;
+        for (var j = 0; j < triangles.length; j++) {
+            if (in_triangle(points[i], triangles[j])) {
+                points_inside += 1;
+            }
+        }
+        simp_depths.push(points_inside);
+        points[i].data("simp_depth", points_inside);
+    }
+
+    median_point = points[index_of_max(simp_depths)];
+
+    median.animate({cx: median_point.attr("cx"), cy: median_point.attr("cy")}, 200);
+}
+
+function index_of_max(l) {
+    if (l.length === 0) {
+        return -1;
+    }
+
+    var max = -10000000000;
+    var max_i = -1;
+
+    for (var i = 0; i < l.length; i++) {
+        if (l[i] > max) { // i.e. only look at unhulled ones
+            max_i = i;
+            max = l[i];
+        }
+    }
+
+    return max_i;
+}
+
+
+// Todo: understand this! Cross product?
+function sign (p1, p2, p3) {
+    return (p1.attr("cx") - p3.attr("cx")) * (p2.attr("cy") - p3.attr("cy")) -
+           (p2.attr("cx") - p3.attr("cx")) * (p1.attr("cy") - p3.attr("cy"));
+}
+
+// Return whether cand p is in the triangle t (array of 3 points)
+function in_triangle(cand_p, t) {
+    s1 = sign(cand_p, t[0], t[1]) < 0;
+    s2 = sign(cand_p, t[1], t[2]) < 0;
+    s3 = sign(cand_p, t[2], t[0]) < 0;
+
+    return ((s1 == s2) && (s2 == s3));
 }
 
 
@@ -311,10 +388,14 @@ function angle_between3(p1,p2,p3) {
     return Math.acos((a*a+b*b-c*c)/(2*a*b))
 }
 
-function draw_path(p1, p2, hull_i) {
-    colors = ["#FF8A65","#FF7043","#FF5722","#F4511E","#E64A19","#D84315","#BF360C"];
+function draw_path(p1, p2, hull_i, stroke_width) {
+    if(hull_i == -1) {
+        colors = ["#000000"];
+    } else {
+        colors = ["#FF8A65","#FF7043","#FF5722","#F4511E","#E64A19","#D84315","#BF360C"];
+    }
     p =paper.path(["M", p1.attr("cx"), p1.attr("cy"), "L", p2.attr("cx"), p2.attr("cy")]);
-    p.attr({stroke:colors[hull_i % colors.length],"stroke-width":2});
+    p.attr({stroke:colors[hull_i % colors.length],"stroke-width":stroke_width});
     p.toBack();
     return p;
 }
