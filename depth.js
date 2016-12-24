@@ -31,6 +31,7 @@ var hull_colors = ["#EF5350","#F44336","#E53935","#D32F2F","#C62828","#B71C1C"];
 
 // simplicial median crap
 var cg_lines = [];
+var triangles = [];
 
 // Register all the event handlers
 $(document).ready(function() {
@@ -133,6 +134,7 @@ function cleanup() {
         cg_lines[i].remove();
     }
     cg_lines = [];
+    triangles = [];
 }
 
 ////////////////////////////////////// 
@@ -172,8 +174,6 @@ function draw_median_x_y() {
     }
     med_x = get_median(xs);
     med_y = get_median(ys);
-
-    // gonna set the bogus medians to look like this #EF5350
 
     if (!bogus_medx && !bogus_medy) {
         bogus_medx = draw_point(proj_median_size, paper_h-(proj_median_size), "#EF5350", proj_median_size);
@@ -328,14 +328,15 @@ function index_of_max_for_hull(l, hull_i) {
 function draw_simplicial_median() {
     triangles = [];
     for(var i = 0; i < points.length; i++) {
-        for(var j = 0; j < points.length; j++){
+        if (points[i].data("simp_depth") !== undefined) {}
+        for(var j = i; j < points.length; j++){
             if (j != i) {
-                for(var k = 0; k < points.length; k++){
+                for(var k = j; k < points.length; k++){
                     if (k != i && k != j) {
                         triangles.push([points[i], points[j], points[k]]);
                     }
                 }
-                // cg_lines.push(draw_path(points[i], points[j], "#000000", 1));
+                cg_lines.push(draw_path(points[i], points[j], "#000000", 1));
             }
         }
     }
