@@ -282,10 +282,9 @@ function get_median(l) {
 function draw_point(x, y, color, radius) {
     // print_point(x,y);
     new_circ = paper.circle(x, y, radius).attr({fill: color, stroke: "#FFFFFF"});
-    new_circ.hover(function(){
-        // console.log("hover output");
-        //print_point(this.attr("cx"),this.attr("cy"));
-    });
+    new_circ.hover(function(){this.animate({r:radius+2}, 100);},
+                   function(){this.animate({r:radius}, 100)});
+
     return new_circ;
 }
 
