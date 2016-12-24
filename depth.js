@@ -10,13 +10,26 @@ var paper = Raphael(plane, 800, 600);
 // paper.rect(0, 0, 800, 600, 10).attr({fill: "#F5F5F5", stroke: "none"});
 var point_size = 6;
 var median_size = 8;
+var proj_point_size = 4;
+var proj_median_size = 6;
 var points = [];
 var point_color = "#212121";
 var median_type = parseInt($("#medianpicker").val());
+var last_median_type = -1;
 var median;
+
+// median of medians crap
+var bogus_med_med_points = [];
+var bogus_medx;
+var bogus_medy;
+
+// nested hulls crap
 var hulls = [];
-// var bogus_med_med_points = [];
 var hull_lines = [];
+var hull_colors = ["#EF5350","#F44336","#E53935","#D32F2F","#C62828","#B71C1C"];
+
+
+// simplicial median crap
 var cg_lines = [];
 
 // Register all the event handlers
@@ -67,16 +80,11 @@ function handle_click(e) {
 
 // Draws the median of points based on currently chosen definition
 function draw_median() {
-    for (var i = 0; i < points.length; i++) {  
-        points[i].animate({fill:"#000"});
-        points[i].removeData();
+    // really high quality modular stuff here man
+    if (median_type != last_median_type || median_type == 2) {
+        cleanup();
     }
-    for(var i = 0; i < hull_lines.length; i++) {
-        hull_lines[i].remove();
-    }
-    for(var i = 0; i < cg_lines.length; i++) {
-        cg_lines[i].remove();
-    }
+
     median.toFront();
     switch(median_type) {
         case 0: 
@@ -94,6 +102,37 @@ function draw_median() {
         default:
             alert("bad option for median type used " + median_type);
     }
+    last_median_type = median_type;
+}
+
+// Basically just kill everything that isn't just the points
+function cleanup() {
+    for (var i = 0; i < points.length; i++) {  
+        points[i].animate({fill:"#000"});
+        points[i].removeData();
+    }
+
+    // cleanup med_x med_y
+    for(var i = 0; i < bogus_med_med_points.length; i++) {
+        bogus_med_med_points[i].remove();
+    }
+    bogus_med_med_points = [];
+    if (bogus_medx && bogus_medy) {
+        bogus_medx.remove();
+        bogus_medy.remove();
+    }
+
+    // cleanup nested hulls
+    for(var i = 0; i < hull_lines.length; i++) {
+        hull_lines[i].remove();
+    }
+    hull_lines = [];
+
+    // cleanup simplicial
+    for(var i = 0; i < cg_lines.length; i++) {
+        cg_lines[i].remove();
+    }
+    cg_lines = [];
 }
 
 ////////////////////////////////////// 
@@ -121,10 +160,29 @@ function draw_median_x_y() {
     for (var i = 0; i < num_points; i++) {
         xs.push(points[i].attr("cx"));
         ys.push(points[i].attr("cy"));
+        if (!points[i].data("bogus_drawn")) {
+            x_bog = draw_point(points[i].attr("cx"), points[i].attr("cy"), "#9E9E9E", proj_point_size);
+            y_bog = draw_point(points[i].attr("cx"), points[i].attr("cy"), "#9E9E9E", proj_point_size);
+            bogus_med_med_points.push(x_bog);
+            bogus_med_med_points.push(y_bog);
+            x_bog.animate({cy:paper_h-(proj_point_size)}, 200);
+            y_bog.animate({cx:proj_point_size}, 200);
+            points[i].data("bogus_drawn", true);   
+        }
     }
-
     med_x = get_median(xs);
     med_y = get_median(ys);
+
+    // gonna set the bogus medians to look like this #EF5350
+
+    if (!bogus_medx && !bogus_medy) {
+        bogus_medx = draw_point(proj_median_size, paper_h-(proj_median_size), "#EF5350", proj_median_size);
+        bogus_medy = draw_point(proj_median_size, paper_h-(proj_median_size), "#EF5350", proj_median_size);
+    }
+    bogus_medx.animate({cx:med_x});
+    bogus_medx.toFront();
+    bogus_medy.animate({cy:med_y});
+    bogus_medy.toFront();
     median.animate({cx: med_x, cy: med_y}, 200);
 }
 
@@ -175,7 +233,6 @@ function draw_hull_median() {
     }
     
     median.animate({cx: med_x / num_non_hull, cy: med_y / num_non_hull}, 200);
-    console.log("there are " + num_non_hull + " points being averaged to make median");
 }
 
 
@@ -223,7 +280,7 @@ function make_hull(hull_i) {
         first_hull_i = this_hull[this_hull.length-2];
         second_hull_i = this_hull[this_hull.length-1];
         
-        hull_lines.push(draw_path(points[first_hull_i], points[second_hull_i], hull_i, 2));
+        hull_lines.push(draw_path(points[first_hull_i], points[second_hull_i], hull_colors[hull_i%hull_colors.length], 2));
 
         for(var i = 0; i < points.length; i++) {
             if(i != first_hull_i && i != second_hull_i) {
@@ -240,9 +297,8 @@ function make_hull(hull_i) {
         points[next_i].animate({fill:"#3D5AFE"},200);
     }
 
-    hull_lines.push(draw_path(points[this_hull[0]], points[this_hull[this_hull.length-1]], hull_i, 2));
-
-    console.log("computed hull with index: " + hull_i);
+    // close the hull
+    hull_lines.push(draw_path(points[this_hull[0]], points[this_hull[this_hull.length-1]], hull_colors[hull_i%hull_colors.length], 2));
 
     return this_hull;
 }
@@ -279,7 +335,7 @@ function draw_simplicial_median() {
                         triangles.push([points[i], points[j], points[k]]);
                     }
                 }
-                cg_lines.push(draw_path(points[i], points[j], -1, 1));
+                // cg_lines.push(draw_path(points[i], points[j], "#000000", 1));
             }
         }
     }
@@ -388,14 +444,9 @@ function angle_between3(p1,p2,p3) {
     return Math.acos((a*a+b*b-c*c)/(2*a*b))
 }
 
-function draw_path(p1, p2, hull_i, stroke_width) {
-    if(hull_i == -1) {
-        colors = ["#000000"];
-    } else {
-        colors = ["#FF8A65","#FF7043","#FF5722","#F4511E","#E64A19","#D84315","#BF360C"];
-    }
+function draw_path(p1, p2, color, stroke_width) {
     p =paper.path(["M", p1.attr("cx"), p1.attr("cy"), "L", p2.attr("cx"), p2.attr("cy")]);
-    p.attr({stroke:colors[hull_i % colors.length],"stroke-width":stroke_width});
+    p.attr({stroke:color,"stroke-width":stroke_width});
     p.toBack();
     return p;
 }
