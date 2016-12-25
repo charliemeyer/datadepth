@@ -6,7 +6,7 @@ var paper_w = $("#plane").width();
 var paper_h = $("#plane").height();
 var plane = document.getElementById("plane");
 
-var paper = Raphael(plane, 800, 600);
+var paper = Raphael(plane, paper_w, paper_h);
 // paper.rect(0, 0, 800, 600, 10).attr({fill: "#F5F5F5", stroke: "none"});
 var point_size = 6;
 var median_size = 8;
@@ -41,6 +41,33 @@ $(document).ready(function() {
     $("#medianpicker").change(function(){
         median_type = parseInt($(this).val());
         draw_median();
+    });
+    $( window ).resize(function() {
+        old_w = paper_w;
+        old_h = paper_h;
+        paper_w = $("#plane").width();
+        paper_h = $("#plane").height();
+        paper.setSize(paper_w, paper_h);
+        cleanup();
+        x_scale = paper_w/old_w;
+        y_scale = paper_h/old_h;
+        console.log("we are reseizing " + x_scale + " " + y_scale);
+        for (var i = 0; i < points.length; i++) {
+            old_x = points[i].attr("cx");
+            old_y = points[i].attr("cy");
+            if (i+1 < points.length) {
+                points[i].attr({cx: old_x * x_scale, cy: old_y * y_scale}, 100);
+            } else {
+                points[i].animate({cx: old_x * x_scale, cy: old_y * y_scale}, 200, 
+                    function() {
+                        draw_median();
+                    });
+            }
+        }
+        if (points.length == 0) {
+            median.animate({cx:paper_w/2, cw:paper_h/2}, 200);
+
+        }
     });
 });
 

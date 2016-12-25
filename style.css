@@ -1,4 +1,14 @@
+html {
+    height: 100%;
+    overflow: hidden;
+}
+
+h3,h4 {
+    margin: 10px;
+}
+
 body {
+    height: 100%;
     text-align: center;
     color: #F5F5F5;
     background-color: #424242;
@@ -8,8 +18,10 @@ body {
 #plane {
     margin: 0 auto;
     background-color: #F5F5F5;
-    height: 600px;
-    width: 800px;
+    height: calc(100% - 150px);
+    width: 100%;
+    max-width: 1200px;
+    max-height: 800px;
 }
 
 .button {
