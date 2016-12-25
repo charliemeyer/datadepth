@@ -22,6 +22,7 @@ body {
     width: 100%;
     max-width: 1200px;
     max-height: 800px;
+    -webkit-tap-highlight-color: rgba(0,0,0,0);
 }
 
 .button {
