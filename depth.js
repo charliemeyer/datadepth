@@ -65,8 +65,7 @@ $(document).ready(function() {
             }
         }
         if (points.length == 0) {
-            median.animate({cx:paper_w/2, cw:paper_h/2}, 200);
-
+            draw_median();
         }
     });
 });
@@ -86,9 +85,10 @@ function clear_points() {
             points[i].animate({cx: med_x, cy: med_y}, 200, 
                 function() {
                     paper.clear();
+                    cleanup();
                     points = [];
                     median = draw_point(med_x, med_y, "#F44336", 7);
-                    median.animate({cx:paper_w/2, cy:paper_h/2}, 200)
+                    draw_median();
                 });
         }
     }
@@ -109,6 +109,11 @@ function handle_click(e) {
 // Draws the median of points based on currently chosen definition
 function draw_median() {
     // really high quality modular stuff here man
+    if (points.length == 0) {
+        median.animate({cx:paper_w/2, cy:paper_h/2}, 200);
+        return;
+    }
+
     if (median_type != last_median_type || median_type == 2) {
         cleanup();
     }
@@ -144,10 +149,13 @@ function cleanup() {
     for(var i = 0; i < bogus_med_med_points.length; i++) {
         bogus_med_med_points[i].remove();
     }
+
     bogus_med_med_points = [];
     if (bogus_medx && bogus_medy) {
         bogus_medx.remove();
         bogus_medy.remove();
+        bogus_medx = false;
+        bogus_medy = false;
     }
 
     // cleanup nested hulls
