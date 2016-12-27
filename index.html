@@ -5,21 +5,23 @@
 		<title>Data Depth</title>
 		<link rel="stylesheet" type="text/css" href="style.css">
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+		<script src="hoverIntent.js"></script>
 		<script src="raphael.js"></script>
 		<link href="https://fonts.googleapis.com/css?family=Inconsolata" rel="stylesheet">
 		<meta name="viewport" content="width=device-width, user-scalable=no">
 	</head>
 	<body>
 		<h3>data depth</h3>
+		<div id="popover">ayy lmao</div>
 		<div id="plane"></div>
-		<span class='button' id='clear_points'>clear points</span><br>
-		<select id="medianpicker">
+		Center type: <select id="medianpicker">
 			<option value=0>Mean</option>
-			<option value=1>Median x, Median y</option>
-			<option value=2>Nested Hulls</option>
-			<option value=3>Simplicial Median</option>
-			<option value=4>Halfspace Median</option>
+			<option value=1>Coordinate-wise median</option>
+			<option value=2>"Nested Hull" median</option>
+			<option value=3>Simplicial median</option>
+			<option value=4>Halfspace median</option>
 		</select>
+		<span class='button' id='clear_points'>clear points</span>
 		<script src="depth.js"></script>
 		<h4>by Charlie Meyer</h4>
 	</body>

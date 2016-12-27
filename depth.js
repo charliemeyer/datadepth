@@ -5,6 +5,7 @@
 var paper_w = $("#plane").width();
 var paper_h = $("#plane").height();
 var plane = document.getElementById("plane");
+$("#popover").hide();
 
 var paper = Raphael(plane, paper_w, paper_h);
 // paper.rect(0, 0, 800, 600, 10).attr({fill: "#F5F5F5", stroke: "none"});
@@ -38,7 +39,7 @@ var h_space_lines = [];
 
 // Register all the event handlers
 $(document).ready(function() {
-    median = draw_point(paper_w/2, paper_h/2, "#F44336", 7);
+    median = draw_point(paper_w/2, paper_h/2, "#F44336", 7, true).data("median", true);
     $("#plane").click(handle_click);
     $("#clear_points").click(clear_points);
     $("#medianpicker").change(function(){
@@ -89,7 +90,7 @@ function clear_points() {
                     paper.clear();
                     cleanup();
                     points = [];
-                    median = draw_point(med_x, med_y, "#F44336", 7);
+                    median = draw_point(med_x, med_y, "#F44336", 7, true).data("median", true);
                     draw_median();
                 });
         }
@@ -102,7 +103,7 @@ function handle_click(e) {
     var x = event.clientX - rect.left;
     var y = event.clientY - rect.top;
 
-    new_point = draw_point(x, y, point_color, point_size);
+    new_point = draw_point(x, y, point_color, point_size, true);
     points.push(new_point);
 
     draw_median();
@@ -142,6 +143,39 @@ function draw_median() {
     }
     last_median_type = median_type;
 }
+
+function get_depth_description(point) {
+    var median_descs = ["Mean", "Coordinate-wise median", "\"Nested hull\" median", "Simplicial median", "Halfspace median"]
+
+    if (point.data("median")) {
+        return median_descs[median_type] + " of the data";
+    }
+    switch(median_type) {
+        case 0: 
+            return dist(point, median) + " units away from mean";
+            break;
+        case 1:
+            return "x rank: " + point.data("x_rank") +"/" + points.length + "<br>" +
+                   "y rank: " + point.data("y_rank") +"/" + points.length;
+            break;
+        case 2:
+            if (point.data("hull_i") == 100000) {
+                return "Inside innermost hull";
+            } else {
+                return "On nested hull: " + point.data("hull_i");
+            }
+            break;
+        case 3:
+            return "Simplicial depth: " + point.data("simp_depth");
+            break;
+        case 4:
+            return "Halfspace depth:" + point.data("h_depth");
+            break;    
+        default:
+            alert("bad option for median type used " + median_type);
+    }
+}
+
 
 // Basically just kill everything that isn't just the points
 function cleanup() {
@@ -200,16 +234,16 @@ function draw_mean_point() {
 }
 
 function draw_median_x_y() {
-    xs = []
-    ys = []
+    var xs = []
+    var ys = []
 
     var num_points = points.length;
     for (var i = 0; i < num_points; i++) {
-        xs.push(points[i].attr("cx"));
-        ys.push(points[i].attr("cy"));
+        xs.push({data: points[i].attr("cx"), i:i});
+        ys.push({data: points[i].attr("cy"), i:i});
         if (!points[i].data("bogus_drawn")) {
-            x_bog = draw_point(points[i].attr("cx"), points[i].attr("cy"), "#9E9E9E", proj_point_size);
-            y_bog = draw_point(points[i].attr("cx"), points[i].attr("cy"), "#9E9E9E", proj_point_size);
+            x_bog = draw_point(points[i].attr("cx"), points[i].attr("cy"), "#9E9E9E", proj_point_size, false);
+            y_bog = draw_point(points[i].attr("cx"), points[i].attr("cy"), "#9E9E9E", proj_point_size, false);
             bogus_med_med_points.push(x_bog);
             bogus_med_med_points.push(y_bog);
             x_bog.animate({cy:paper_h-(proj_point_size)}, 200);
@@ -217,12 +251,20 @@ function draw_median_x_y() {
             points[i].data("bogus_drawn", true);   
         }
     }
+
     med_x = get_median(xs);
     med_y = get_median(ys);
 
+    for (var rank_i = 0; rank_i < num_points; rank_i++) {
+        x_point = xs[rank_i];
+        points[x_point.i].data("x_rank", rank_i + 1);
+        y_point = ys[rank_i];
+        points[y_point.i].data("y_rank", rank_i + 1);
+    }
+
     if (!bogus_medx && !bogus_medy) {
-        bogus_medx = draw_point(proj_median_size, paper_h-(proj_median_size), "#EF5350", proj_median_size);
-        bogus_medy = draw_point(proj_median_size, paper_h-(proj_median_size), "#EF5350", proj_median_size);
+        bogus_medx = draw_point(proj_median_size, paper_h-(proj_median_size), "#EF5350", proj_median_size, false);
+        bogus_medy = draw_point(proj_median_size, paper_h-(proj_median_size), "#EF5350", proj_median_size, false);
     }
     bogus_medx.animate({cx:med_x});
     bogus_medx.toFront();
@@ -484,6 +526,7 @@ function get_halfspace_depth(point_i) {
     }
 
     h_space_lines.push(draw_path(points[lines[best_line][0]], points[lines[best_line][1]], "#000000", 1));
+    points[point_i].data("h_depth", min_depth);
     return min_depth;
 }
 
@@ -495,31 +538,51 @@ function get_halfspace_depth(point_i) {
 
 // Returns the median element in list of numbers l
 function get_median(l) {
-    l.sort(function(a,b){return a-b});
+    l.sort(function(a,b){return a.data-b.data});
     len = l.length;
     if(len == 1) {
-        return l[0];
+        return l[0].data;
     }
     if(l.length % 2 != 0) {
-        return l[Math.floor(len/2)];
+        return l[Math.floor(len/2)].data;
     } else {
-        return (l[len/2-1]+l[len/2])/2;
+        return (l[len/2-1].data+l[len/2].data)/2;
     }
 }
 
 // Draw point on canvas at x y with given color and radius
-function draw_point(x, y, color, radius) {
-    // print_point(x,y);
-    new_circ = paper.circle(x, y, radius).attr({fill: color, stroke: "#FFFFFF"});
-    new_circ.hover(function(){this.animate({r:radius+2}, 100);},
-                   function(){this.animate({r:radius}, 100)});
+function draw_point(x, y, color, radius, should_popover) {
+    var new_circ = paper.circle(x, y, radius).attr({fill: color, stroke: "#FFFFFF"});
+    if (should_popover) {
+        $(new_circ.node).hoverIntent(
+                    function() {
+                        new_circ.animate({r:radius+2}, 100);
+                        x_on_paper = new_circ.attr("cx");
+                        y_on_paper = new_circ.attr("cy");
+                        $("#popover").html(get_depth_description(new_circ));
+                        popover_w = $("#popover").outerWidth();
+                        popover_h = $("#popover").outerHeight();
+
+                        // todo: maybe care about left and right edges but that seems a bit much
+                        // if (y_on_paper > paper_h / 2) {
+                        $("#popover").css("left", $('#plane').offset().left + x_on_paper-(popover_w/2))
+                                     .css("top", $('#plane').offset().top+new_circ.attr("cy")-(15+popover_h));
+                        // } else {
+                        // $("#popover").css("left", $('#plane').offset().left + x_on_paper-(popover_w/2))
+                                     // .css("top", $('#plane').offset().top+new_circ.attr("cy")+15);
+                        // }
+
+
+                        $("#popover").fadeIn(100);
+                    },
+                    function(){
+                        new_circ.animate({r:radius}, 100)
+                        $("#popover").fadeOut(100);
+                    }
+                );
+    }
 
     return new_circ;
-}
-
-// Debug output for a point
-function print_point(x,y) {
-    console.log("point at (" + x +", " + y + ")");
 }
 
 // returns the angle p1, p2, p3, centered at p2
@@ -545,6 +608,14 @@ function draw_path(p1, p2, color, stroke_width) {
     p.attr({stroke:color,"stroke-width":stroke_width});
     p.toBack();
     return p;
+}
+
+function dist(p1, p2) {
+    return Math.round(Math.sqrt((p1.attr("cx")-p2.attr("cx"))**2+(p1.attr("cy")-p2.attr("cy"))**2));
+}
+
+function get_rank(axis) {
+
 }
 
 // work harder on this

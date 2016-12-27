@@ -50,3 +50,20 @@ body {
   from {background-color: #2196F3; box-shadow: 0 2px 4px rgba(0,0,0,0.16), 0 2px 4px rgba(0,0,0,0.23);}
   to {background-color: #1976D2; box-shadow: 0 4px 8px rgba(0,0,0,0.19), 0 4px 8px rgba(0,0,0,0.23);}
 }
+
+#popover {
+    font-size: 14px;
+    padding: 6px;
+    font-weight: bold;
+    overflow: hidden;
+    max-height: 50px;
+    max-width: 120px;
+    position: absolute;
+    z-index: 1000;
+    background-color: #E0E0E0;
+    transition: background .25s ease-in-out;
+    -moz-transition: background .25s ease-in-out;
+    -webkit-transition: background .25s ease-in-out;
+    color: #212121;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.16), 0 2px 4px rgba(0,0,0,0.23);
+}
