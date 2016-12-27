@@ -33,6 +33,9 @@ var hull_colors = ["#EF5350","#F44336","#E53935","#D32F2F","#C62828","#B71C1C"];
 var cg_lines = [];
 var triangles = [];
 
+// halfaspace crap
+var h_space_lines = [];
+
 // Register all the event handlers
 $(document).ready(function() {
     median = draw_point(paper_w/2, paper_h/2, "#F44336", 7);
@@ -114,7 +117,7 @@ function draw_median() {
         return;
     }
 
-    if (median_type != last_median_type || median_type == 2) {
+    if (median_type != last_median_type || median_type == 2 || median_type == 4) {
         cleanup();
     }
 
@@ -132,6 +135,9 @@ function draw_median() {
         case 3:
             draw_simplicial_median();
             break;
+        case 4:
+            draw_halfspace_median();
+            break;    
         default:
             alert("bad option for median type used " + median_type);
     }
@@ -170,6 +176,11 @@ function cleanup() {
     }
     cg_lines = [];
     triangles = [];
+
+    for(var i = 0; i < h_space_lines.length; i++) {
+        h_space_lines[i].remove();
+    }
+    h_space_lines = [];
 }
 
 ////////////////////////////////////// 
@@ -403,7 +414,7 @@ function index_of_max(l) {
     var max_i = -1;
 
     for (var i = 0; i < l.length; i++) {
-        if (l[i] > max) { // i.e. only look at unhulled ones
+        if (l[i] > max) { 
             max_i = i;
             max = l[i];
         }
@@ -413,7 +424,7 @@ function index_of_max(l) {
 }
 
 
-// Todo: understand this! Cross product?
+// it's a determinant or smth
 function sign (p1, p2, p3) {
     return (p1.attr("cx") - p3.attr("cx")) * (p2.attr("cy") - p3.attr("cy")) -
            (p2.attr("cx") - p3.attr("cx")) * (p1.attr("cy") - p3.attr("cy"));
@@ -427,6 +438,58 @@ function in_triangle(cand_p, t) {
 
     return ((s1 == s2) && (s2 == s3));
 }
+
+function draw_halfspace_median() {
+    var h_depths = [];
+    if (points.length < 3) {
+        return;
+    }
+
+    for (var i=0; i < points.length; i++) {
+        h_depths.push(get_halfspace_depth(i));
+    }
+    console.log(h_depths);
+    median_point = points[index_of_max(h_depths)];
+    median.animate({cx: median_point.attr("cx"), cy: median_point.attr("cy")}, 200);
+}
+
+function get_halfspace_depth(point_i) {
+    var lines = [];
+    for (var i=0; i < points.length; i++) {
+        if (i != point_i) {
+            lines.push([point_i, i]);
+        }
+    }
+
+    var best_line = 0;
+    var max_depth = 0;
+
+    for (var i=0; i < lines.length; i++) {
+        var num_above = 0;
+        var num_below = 0;
+        var l1 = lines[i][0];
+        var l2 = lines[i][1];
+        for (var j=0; j < points.length; j++) {
+            if (j != l1 && j != l2) {
+                if(sign(points[l1], points[l2], points[j]) > 0) {
+                    num_above++;
+                } else {
+                    num_below++;
+                }
+            }            
+        }
+        var depth = Math.min(num_above, num_below);
+        if (depth > max_depth) {
+            max_depth = depth;
+            best_line = i;
+        }
+        // console.log("for point " + point_i +" you get " + num_above + " above and " + num_below + " below");
+    }
+
+    h_space_lines.push(draw_path(points[lines[best_line][0]], points[lines[best_line][1]], "#000000", 1));
+    return max_depth;
+}
+
 
 
 ///////////////
@@ -486,4 +549,24 @@ function draw_path(p1, p2, color, stroke_width) {
     p.toBack();
     return p;
 }
+
+// work harder on this
+// function draw_line(p1, p2, color, stroke_width) {
+//     x1 = p1.attr("cx");
+//     x2 = p2.attr("cx");
+//     y1 = p1.attr("cy");
+//     y2 = p2.attr("cy");
+
+//     slope = (y2-y1)/(x1-x2);
+//     if (Math.abs(slope) > paper_h/paper_w) {
+//         line_start = 
+//         line_end = 
+//     } else {
+//         line_start = 
+//         line_end =
+//     }
+
+//     return draw_path(line_start, line_end, color, stroke_width);
+// }
+
 
