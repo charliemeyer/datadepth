@@ -54,7 +54,6 @@ $(document).ready(function() {
         cleanup();
         x_scale = paper_w/old_w;
         y_scale = paper_h/old_h;
-        console.log("we are reseizing " + x_scale + " " + y_scale);
         for (var i = 0; i < points.length; i++) {
             old_x = points[i].attr("cx");
             old_y = points[i].attr("cy");
@@ -448,7 +447,6 @@ function draw_halfspace_median() {
     for (var i=0; i < points.length; i++) {
         h_depths.push(get_halfspace_depth(i));
     }
-    console.log(h_depths);
     median_point = points[index_of_max(h_depths)];
     median.animate({cx: median_point.attr("cx"), cy: median_point.attr("cy")}, 200);
 }
@@ -462,7 +460,7 @@ function get_halfspace_depth(point_i) {
     }
 
     var best_line = 0;
-    var max_depth = 0;
+    var min_depth = 1000000;
 
     for (var i=0; i < lines.length; i++) {
         var num_above = 0;
@@ -479,15 +477,14 @@ function get_halfspace_depth(point_i) {
             }            
         }
         var depth = Math.min(num_above, num_below);
-        if (depth > max_depth) {
-            max_depth = depth;
+        if (depth < min_depth) {
+            min_depth = depth;
             best_line = i;
         }
-        // console.log("for point " + point_i +" you get " + num_above + " above and " + num_below + " below");
     }
 
     h_space_lines.push(draw_path(points[lines[best_line][0]], points[lines[best_line][1]], "#000000", 1));
-    return max_depth;
+    return min_depth;
 }
 
 
