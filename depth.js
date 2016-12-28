@@ -18,9 +18,11 @@ var point_color = "#212121";
 var median_type = parseInt($("#medianpicker").val());
 var last_median_type = -1;
 var median;
+var allow_popovers = true;
 
 // median of medians 
-var bogus_med_med_points = [];
+var bogus_med_y_points = [];
+var bogus_med_x_points = [];
 var bogus_medx;
 var bogus_medy;
 
@@ -28,7 +30,6 @@ var bogus_medy;
 var hulls = [];
 var hull_lines = [];
 var hull_colors = ["#F57C00","#EF6C00","#E65100","#F4511E","#E64A19","#D84315", "#BF360C"];
-
 
 // simplicial median 
 var cg_lines = [];
@@ -39,6 +40,9 @@ var points_drawn = 0;
 
 // halfspace 
 var h_space_lines = [];
+
+// extra stuff when hovering over point
+var depth_extras = [];
 
 // Register all the event handlers
 $(document).ready(function() {
@@ -114,6 +118,7 @@ function handle_click(e) {
 
 // Draws the median of points based on currently chosen definition
 function draw_median() {
+    allow_popovers = false;
     if (points.length == 0) {
         median.animate({cx:paper_w/2, cy:paper_h/2}, 200);
         return;
@@ -150,18 +155,23 @@ function draw_median() {
 function get_depth_description(point) {
     var median_descs = ["Mean", "Coordinate-wise median", "\"Nested hull\" median", "Simplicial median", "Halfspace median"]
 
-    if (point.data("median")) {
-        if (point.data("depth")) {
-            return median_descs[median_type] + "<br>Depth: " + point.data("depth");
-        } else {
-            return median_descs[median_type];
-        }
-    }
+    var desc = "";
     switch(median_type) {
         case 0: 
+            if (point.data("median")) {
+                return median_descs[median_type];
+            }
+            depth_extras.push(draw_path(point, median, "#F44336", 1));
             return dist(point, median) + " units from mean";
             break;
         case 1:
+            if (point.data("median")) {
+                depth_extras.push(draw_path(point, bogus_medx, "#F44336", 1));
+                depth_extras.push(draw_path(point, bogus_medy, "#F44336", 1));
+                return median_descs[median_type];
+            }
+            depth_extras.push(draw_path(point, bogus_med_x_points[point.data("point_i")], "#F44336", 1));
+            depth_extras.push(draw_path(point, bogus_med_y_points[point.data("point_i")], "#F44336", 1));
             return "x rank: " + point.data("x_rank") +"/" + points.length + "<br>" +
                    "y rank: " + point.data("y_rank") +"/" + points.length;
             break;
@@ -188,17 +198,21 @@ function get_depth_description(point) {
 function cleanup() {
     for (var i = 0; i < points.length; i++) {  
         points[i].animate({fill:"#000"});
-        points[i].removeData();
+        // todo: do we need this?!?!
+        // points[i].removeData();
     }
-    median.removeData();
+    // median.removeData();
     median.data("median", true);
 
     // cleanup med_x med_y
-    for(var i = 0; i < bogus_med_med_points.length; i++) {
-        bogus_med_med_points[i].remove();
+    for(var i = 0; i < bogus_med_x_points.length; i++) {
+        bogus_med_x_points[i].remove();
+        bogus_med_y_points[i].remove();
     }
 
-    bogus_med_med_points = [];
+    bogus_med_x_points = [];
+    bogus_med_y_points = [];
+
     if (bogus_medx && bogus_medy) {
         bogus_medx.remove();
         bogus_medy.remove();
@@ -242,7 +256,7 @@ function draw_mean_point() {
     }
     mean_x = mean_x / num_points;
     mean_y = mean_y / num_points;
-    median.animate({cx: mean_x, cy: mean_y}, 200);
+    median.animate({cx: mean_x, cy: mean_y}, 200, function(){allow_popovers = true;});
 }
 
 function draw_median_x_y() {
@@ -256,8 +270,8 @@ function draw_median_x_y() {
         if (!points[i].data("bogus_drawn")) {
             x_bog = draw_point(points[i].attr("cx"), points[i].attr("cy"), "#9E9E9E", proj_point_size, false);
             y_bog = draw_point(points[i].attr("cx"), points[i].attr("cy"), "#9E9E9E", proj_point_size, false);
-            bogus_med_med_points.push(x_bog);
-            bogus_med_med_points.push(y_bog);
+            bogus_med_x_points.push(x_bog);
+            bogus_med_y_points.push(y_bog);
             x_bog.animate({cy:paper_h-(proj_point_size)}, 200);
             y_bog.animate({cx:proj_point_size}, 200);
             points[i].data("bogus_drawn", true);   
@@ -282,7 +296,7 @@ function draw_median_x_y() {
     bogus_medx.toFront();
     bogus_medy.animate({cy:med_y});
     bogus_medy.toFront();
-    median.animate({cx: med_x, cy: med_y}, 200);
+    median.animate({cx: med_x, cy: med_y}, 200, function(){allow_popovers = true;});
 }
 
 
@@ -331,7 +345,7 @@ function draw_hull_median() {
         }
     }
     median.data("depth", hull_i);
-    median.animate({cx: med_x / num_non_hull, cy: med_y / num_non_hull}, 200);
+    median.animate({cx: med_x / num_non_hull, cy: med_y / num_non_hull}, 200, function(){allow_popovers = true;});
 }
 
 
@@ -479,9 +493,9 @@ function draw_simplicial_median() {
     median.data("depth", simp_depths[median_point_i]);
 
     if (median_point_i < points.length) {
-        median.animate({cx: points[median_point_i].attr("cx"), cy: points[median_point_i].attr("cy")}, 200);    
+        median.animate({cx: points[median_point_i].attr("cx"), cy: points[median_point_i].attr("cy")}, 200, function(){allow_popovers = true;});    
     } else {
-        median.animate({cx: inters[median_point_i-points.length].x, cy: inters[median_point_i-points.length].y})
+        median.animate({cx: inters[median_point_i-points.length].x, cy: inters[median_point_i-points.length].y}, 200, function(){allow_popovers = true;})
     }
 }
 
@@ -536,7 +550,7 @@ function draw_halfspace_median() {
     med_point_i = index_of_max(h_depths)
     median_point = points[med_point_i];
     median.data("depth", h_depths[med_point_i]);
-    median.animate({cx: median_point.attr("cx"), cy: median_point.attr("cy")}, 200);
+    median.animate({cx: median_point.attr("cx"), cy: median_point.attr("cy")}, 200, function(){allow_popovers = true;});
 }
 
 function get_halfspace_depth(point_i) {
@@ -601,24 +615,29 @@ function draw_point(x, y, color, radius, should_popover) {
         $(new_circ.node).hoverIntent(
                     function() {
                         new_circ.animate({r:radius+2}, 100);
-                        x_on_paper = new_circ.attr("cx");
-                        y_on_paper = new_circ.attr("cy");
-                        $("#popover").html(get_depth_description(new_circ));
-                        popover_w = $("#popover").outerWidth();
-                        popover_h = $("#popover").outerHeight();
+                        if (allow_popovers) {
+                            x_on_paper = new_circ.attr("cx");
+                            y_on_paper = new_circ.attr("cy");
+                            $("#popover").html(get_depth_description(new_circ));
+                            popover_w = $("#popover").outerWidth();
+                            popover_h = $("#popover").outerHeight();
 
-                        $("#popover").css("left", $('#plane').offset().left + x_on_paper-(popover_w/2))
-                                     .css("top", $('#plane').offset().top+new_circ.attr("cy")-(15+popover_h));
+                            $("#popover").css("left", $('#plane').offset().left + x_on_paper-(popover_w/2))
+                                         .css("top", $('#plane').offset().top+new_circ.attr("cy")-(15+popover_h));
 
-                        $("#popover").fadeIn(100);
+                            $("#popover").fadeIn(100);
+                        }
                     },
                     function(){
-                        new_circ.animate({r:radius}, 100)
+                        new_circ.animate({r:radius}, 100);
+                        for (var i = 0; i < depth_extras.length; i++) {
+                            depth_extras[i].remove();
+                        }
                         $("#popover").fadeOut(100);
                     }
                 );
     }
-
+    new_circ.data("point_i", points.length);
     return new_circ;
 }
 
