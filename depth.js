@@ -200,13 +200,12 @@ function get_depth_description(point) {
     }
 }
 
-
 // Basically just kill everything that isn't just the points
 function cleanup() {
     for (var i = 0; i < points.length; i++) {  
         points[i].animate({fill:"#000"});
-        // todo: do we need this?!?!
-        // points[i].removeData();
+        points[i].removeData();
+        points[i].data("point_i", i);
     }
     // median.removeData();
     median.data("median", true);
