@@ -648,7 +648,7 @@ function draw_path(p1, p2, color, stroke_width) {
 }
 
 function dist(p1, p2) {
-    return Math.round(Math.sqrt((p1.attr("cx")-p2.attr("cx"))**2+(p1.attr("cy")-p2.attr("cy"))**2));
+    return Math.round(Math.sqrt( (p1.attr("cx")-p2.attr("cx"))*(p1.attr("cx")-p2.attr("cx"))+(p1.attr("cy")-p2.attr("cy"))*(p1.attr("cy")-p2.attr("cy"))));
 }
 
 
