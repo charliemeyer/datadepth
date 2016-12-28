@@ -176,13 +176,20 @@ function get_depth_description(point) {
                    "y rank: " + point.data("y_rank") +"/" + points.length;
             break;
         case 2:
+            if (point.data("median")) {
+                return median_descs[median_type];
+            }
             if (point.data("hull_i") == 100000) {
                 return "Inside innermost hull";
             } else {
+                animate_hulls(point.data("hull_i"));
                 return "On nested hull: " + point.data("hull_i");
             }
             break;
         case 3:
+            if (point.data("median")) {
+                return median_descs[median_type] + "<br>Depth: " + point.data("depth");
+            }
             return "Simplicial depth: " + point.data("simp_depth");
             break;
         case 4:
@@ -301,7 +308,6 @@ function draw_median_x_y() {
 
 
 function draw_hull_median() {
-    hulls = []
     total_points = points.length;
 
     for (var i = 0; i < points.length; i++) {
@@ -320,7 +326,7 @@ function draw_hull_median() {
     }
 
     new_hull = make_hull(0); 
-    hull = [new_hull];    
+    hulls = [new_hull];    
 
     points_remaining = total_points - new_hull.length;
 
@@ -363,7 +369,6 @@ function make_hull(hull_i) {
     this_hull.push(first_i);
     first = points[first_i];
     first.data("hull_i", hull_i);
-    first.animate({fill:"#3D5AFE"},200);
 
     // get second hull point
     angles = [];
@@ -382,7 +387,6 @@ function make_hull(hull_i) {
     this_hull.push(first_i);
     first = points[first_i];
     first.data("hull_i", hull_i);
-    first.animate({fill:"#3D5AFE"},200);
     
     // now we get the general case
     next_i = -1
@@ -393,7 +397,7 @@ function make_hull(hull_i) {
         first_hull_i = this_hull[this_hull.length-2];
         second_hull_i = this_hull[this_hull.length-1];
         
-        hull_lines.push(draw_path(points[first_hull_i], points[second_hull_i], hull_colors[hull_i%hull_colors.length], 2));
+        hull_lines.push(draw_path(points[first_hull_i], points[second_hull_i], "#000000", 1));
 
         for(var i = 0; i < points.length; i++) {
             if(i != first_hull_i && i != second_hull_i) {
@@ -407,14 +411,14 @@ function make_hull(hull_i) {
             this_hull.push(next_i);
         }
         points[next_i].data("hull_i", hull_i);
-        points[next_i].animate({fill:"#3D5AFE"},200);
     }
 
     // close the hull
-    hull_lines.push(draw_path(points[this_hull[0]], points[this_hull[this_hull.length-1]], hull_colors[hull_i%hull_colors.length], 2));
+    hull_lines.push(draw_path(points[this_hull[0]], points[this_hull[this_hull.length-1]], "#000000", 1));
 
     return this_hull;
 }
+
 
 // DANGEROUS: this is now in parallel with the state of the points YIKES
 // exclude that index if it happens to be associated with a point with valid data under the key
@@ -435,6 +439,15 @@ function index_of_max_for_hull(l, hull_i) {
     }
 
     return max_i;
+}
+
+function animate_hulls(hull_i) {
+    // for (var i = 0; i < +1; i++) {
+        for (var j = 0; j < hulls[hull_i].length; j++) {
+            points[j].animate({color:"#2196F3"});
+            depth_extras.push(draw_path(points[hulls[hull_i][j]], points[hulls[hull_i][(j+1)%hulls[hull_i].length]], hull_colors[hull_i % hull_colors.length], 3).toFront());
+        }
+    // }
 }
 
 // three cheers for n^6 time holy heack baby
