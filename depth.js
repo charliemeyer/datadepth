@@ -19,22 +19,25 @@ var median_type = parseInt($("#medianpicker").val());
 var last_median_type = -1;
 var median;
 
-// median of medians crap
+// median of medians 
 var bogus_med_med_points = [];
 var bogus_medx;
 var bogus_medy;
 
-// nested hulls crap
+// nested hulls 
 var hulls = [];
 var hull_lines = [];
-var hull_colors = ["#EF5350","#F44336","#E53935","#D32F2F","#C62828","#B71C1C"];
+var hull_colors = ["#F57C00","#EF6C00","#E65100","#F4511E","#E64A19","#D84315", "#BF360C"];
 
 
-// simplicial median crap
+// simplicial median 
 var cg_lines = [];
 var triangles = [];
+var inters = [];
+var lines = [];
+var points_drawn = 0;
 
-// halfaspace crap
+// halfspace 
 var h_space_lines = [];
 
 // Register all the event handlers
@@ -111,12 +114,12 @@ function handle_click(e) {
 
 // Draws the median of points based on currently chosen definition
 function draw_median() {
-    // really high quality modular stuff here man
     if (points.length == 0) {
         median.animate({cx:paper_w/2, cy:paper_h/2}, 200);
         return;
     }
 
+    // really high quality modular stuff here man
     if (median_type != last_median_type || median_type == 2 || median_type == 4) {
         cleanup();
     }
@@ -148,11 +151,15 @@ function get_depth_description(point) {
     var median_descs = ["Mean", "Coordinate-wise median", "\"Nested hull\" median", "Simplicial median", "Halfspace median"]
 
     if (point.data("median")) {
-        return median_descs[median_type] + " of the data";
+        if (point.data("depth")) {
+            return median_descs[median_type] + "<br>Depth: " + point.data("depth");
+        } else {
+            return median_descs[median_type];
+        }
     }
     switch(median_type) {
         case 0: 
-            return dist(point, median) + " units away from mean";
+            return dist(point, median) + " units from mean";
             break;
         case 1:
             return "x rank: " + point.data("x_rank") +"/" + points.length + "<br>" +
@@ -169,7 +176,7 @@ function get_depth_description(point) {
             return "Simplicial depth: " + point.data("simp_depth");
             break;
         case 4:
-            return "Halfspace depth:" + point.data("h_depth");
+            return "Halfspace depth: " + point.data("h_depth");
             break;    
         default:
             alert("bad option for median type used " + median_type);
@@ -183,6 +190,8 @@ function cleanup() {
         points[i].animate({fill:"#000"});
         points[i].removeData();
     }
+    median.removeData();
+    median.data("median", true);
 
     // cleanup med_x med_y
     for(var i = 0; i < bogus_med_med_points.length; i++) {
@@ -209,6 +218,9 @@ function cleanup() {
     }
     cg_lines = [];
     triangles = [];
+    inters = [];
+    lines = [];
+    points_drawn = 0;
 
     for(var i = 0; i < h_space_lines.length; i++) {
         h_space_lines[i].remove();
@@ -318,7 +330,7 @@ function draw_hull_median() {
             num_non_hull += 1;
         }
     }
-    
+    median.data("depth", hull_i);
     median.animate({cx: med_x / num_non_hull, cy: med_y / num_non_hull}, 200);
 }
 
@@ -411,12 +423,10 @@ function index_of_max_for_hull(l, hull_i) {
     return max_i;
 }
 
-// three cheers for n^4 time holy heack baby
+// three cheers for n^6 time holy heack baby
 function draw_simplicial_median() {
-    triangles = [];
-    for(var i = 0; i < points.length; i++) {
-        if (points[i].data("simp_depth") !== undefined) {}
-        for(var j = i; j < points.length; j++){
+    for(var i = points_drawn; i < points.length; i++) {
+        for(var j = 0; j < points.length; j++){
             if (j != i) {
                 for(var k = j; k < points.length; k++){
                     if (k != i && k != j) {
@@ -424,16 +434,28 @@ function draw_simplicial_median() {
                     }
                 }
                 cg_lines.push(draw_path(points[i], points[j], "#000000", 1));
+                // lines.push([points[i], points[j]]);
             }
         }
     }
 
+    points_drawn = points.length;
+
     simp_depths = [];
+
+    // for(var i = 0; i < lines.length; i++) {
+    //     for(var j = i; j < lines.length; j++) {
+    //         inter = line_intersection(lines[i][0], lines[i][1], lines[j][0], lines[j][1]);
+    //         if (inter.x != -1) {
+    //             inters.push(inter);
+    //         }
+    //     }
+    // }
 
     for(var i = 0; i < points.length; i++) {
         points_inside = 0;
         for (var j = 0; j < triangles.length; j++) {
-            if (in_triangle(points[i], triangles[j])) {
+            if (in_triangle({x:points[i].attr("cx"), y:points[i].attr("cy")}, triangles[j])) {
                 points_inside += 1;
             }
         }
@@ -441,9 +463,26 @@ function draw_simplicial_median() {
         points[i].data("simp_depth", points_inside);
     }
 
-    median_point = points[index_of_max(simp_depths)];
 
-    median.animate({cx: median_point.attr("cx"), cy: median_point.attr("cy")}, 200);
+    // for(var i = 0; i < inters.length; i++) {
+    //     points_inside = 0;
+    //     for (var j = 0; j < triangles.length; j++) {
+    //         if (in_triangle({x:inters[i].x, y:inters[i].y}, triangles[j])) {
+    //             points_inside += 1;
+    //         }
+    //     }
+    //     simp_depths.push(points_inside);
+    // }
+
+    median_point_i = index_of_max(simp_depths);
+
+    median.data("depth", simp_depths[median_point_i]);
+
+    if (median_point_i < points.length) {
+        median.animate({cx: points[median_point_i].attr("cx"), cy: points[median_point_i].attr("cy")}, 200);    
+    } else {
+        median.animate({cx: inters[median_point_i-points.length].x, cy: inters[median_point_i-points.length].y})
+    }
 }
 
 function index_of_max(l) {
@@ -464,18 +503,23 @@ function index_of_max(l) {
     return max_i;
 }
 
-
-// it's a determinant or smth
 function sign (p1, p2, p3) {
     return (p1.attr("cx") - p3.attr("cx")) * (p2.attr("cy") - p3.attr("cy")) -
            (p2.attr("cx") - p3.attr("cx")) * (p1.attr("cy") - p3.attr("cy"));
 }
 
+
+// it's a determinant or smth
+function t_sign (p1, p2, p3) {
+    return (p1.x - p3.attr("cx")) * (p2.attr("cy") - p3.attr("cy")) -
+           (p2.attr("cx") - p3.attr("cx")) * (p1.y - p3.attr("cy"));
+}
+
 // Return whether cand p is in the triangle t (array of 3 points)
 function in_triangle(cand_p, t) {
-    s1 = sign(cand_p, t[0], t[1]) < 0;
-    s2 = sign(cand_p, t[1], t[2]) < 0;
-    s3 = sign(cand_p, t[2], t[0]) < 0;
+    s1 = t_sign(cand_p, t[0], t[1]) < 0;
+    s2 = t_sign(cand_p, t[1], t[2]) < 0;
+    s3 = t_sign(cand_p, t[2], t[0]) < 0;
 
     return ((s1 == s2) && (s2 == s3));
 }
@@ -489,7 +533,9 @@ function draw_halfspace_median() {
     for (var i=0; i < points.length; i++) {
         h_depths.push(get_halfspace_depth(i));
     }
-    median_point = points[index_of_max(h_depths)];
+    med_point_i = index_of_max(h_depths)
+    median_point = points[med_point_i];
+    median.data("depth", h_depths[med_point_i]);
     median.animate({cx: median_point.attr("cx"), cy: median_point.attr("cy")}, 200);
 }
 
@@ -530,8 +576,6 @@ function get_halfspace_depth(point_i) {
     return min_depth;
 }
 
-
-
 ///////////////
 // Utilities //
 ///////////////
@@ -563,15 +607,8 @@ function draw_point(x, y, color, radius, should_popover) {
                         popover_w = $("#popover").outerWidth();
                         popover_h = $("#popover").outerHeight();
 
-                        // todo: maybe care about left and right edges but that seems a bit much
-                        // if (y_on_paper > paper_h / 2) {
                         $("#popover").css("left", $('#plane').offset().left + x_on_paper-(popover_w/2))
                                      .css("top", $('#plane').offset().top+new_circ.attr("cy")-(15+popover_h));
-                        // } else {
-                        // $("#popover").css("left", $('#plane').offset().left + x_on_paper-(popover_w/2))
-                                     // .css("top", $('#plane').offset().top+new_circ.attr("cy")+15);
-                        // }
-
 
                         $("#popover").fadeIn(100);
                     },
@@ -614,11 +651,45 @@ function dist(p1, p2) {
     return Math.round(Math.sqrt((p1.attr("cx")-p2.attr("cx"))**2+(p1.attr("cy")-p2.attr("cy"))**2));
 }
 
-function get_rank(axis) {
 
+// lifted from https://www.topcoder.com/community/data-science/data-science-tutorials/geometry-concepts-line-intersection-and-its-applications/
+function line_intersection(p1, p2, p3, p4) {
+    x1 = p1.attr("cx");
+    x2 = p2.attr("cx");
+    x3 = p3.attr("cx");
+    x4 = p4.attr("cx");
+
+    y1 = p1.attr("cy");
+    y2 = p2.attr("cy");
+    y3 = p3.attr("cy");
+    y4 = p4.attr("cy");
+
+    a1 = y2-y1;
+    b1 = x1-x2;
+    c1 = a1*x1+b1*y1;
+
+    a2 = y4-y3;
+    b2 = x3-x4;
+    c2 = a2*x3+b2*y3;
+
+    det = a1*b2-a2*b1;
+
+    inter_x = -1;
+    inter_y = -1;
+
+    if (det != 0) {
+        inter_x = (b2*c1-b1*c2)/det;
+        inter_y = (a1*c2-a2*c1)/det;
+    }
+
+    if (inter_x < Math.min(x1,x2,x3,x4) || inter_x > Math.max(x1,x2,x3,x4) || inter_y < Math.min(y1,y2,y3,y4) || inter_y > Math.max(y1,y2,y3,y4)) {
+        inter_x = -1;
+        inter_y = -1;
+    }
+    return {x: inter_x, y: inter_y};
 }
 
-// work harder on this
+// // draw line through paper 
 // function draw_line(p1, p2, color, stroke_width) {
 //     x1 = p1.attr("cx");
 //     x2 = p2.attr("cx");
@@ -626,7 +697,16 @@ function get_rank(axis) {
 //     y2 = p2.attr("cy");
 
 //     slope = (y2-y1)/(x1-x2);
-//     if (Math.abs(slope) > paper_h/paper_w) {
+
+//     sides = [[{x:0, y:0},{x:0, y: paper_h}],
+//              [{x:0, y:0},{x:paper_w, y: 0}],
+//              [{x:paper_w, y:paper_h},{x:paper_w, y: 0}],
+//              [{x:paper_w, y:paper_h},{x:0, y: paper_h}]]
+
+
+
+
+//     if () {
 //         line_start = 
 //         line_end = 
 //     } else {
