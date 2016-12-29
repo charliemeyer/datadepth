@@ -10,6 +10,7 @@ var paper = Raphael(plane, paper_w, paper_h);
 var median_type = parseInt($("#medianpicker").val());
 $("#popover").hide();
 var allow_popovers = true;
+var keep_animating = true;
 
 // Graphics details
 var point_size = 6;
@@ -121,6 +122,7 @@ function handle_click(e) {
 }
 
 // Draws the median of points based on currently chosen definition
+// TODO: If you're going to simplicial and you had a ton of points, ptfo
 function draw_median() {
     allow_popovers = false;
     if (points.length == 0) {
@@ -461,7 +463,7 @@ function index_of_max_for_hull(l, hull_i) {
 function animate_hulls(hull_i) {
     for (var j = 0; j < hulls[hull_i].length; j++) {
         points[j].animate({color:"#2196F3"});
-        depth_extras.push(draw_path(points[hulls[hull_i][j]], points[hulls[hull_i][(j+1)%hulls[hull_i].length]], "#000000", 3).toFront());
+        depth_extras.push(draw_path(points[hulls[hull_i][j]], points[hulls[hull_i][(j+1)%hulls[hull_i].length]], "#000000", 3));
     }
 }
 
@@ -571,9 +573,9 @@ function highlight_triangles(point) {
     var ts = point.data("triangles_inside");
     for (var i = 0; i < ts.length; i++) {
         var t = triangles[ts[i]];
-        depth_extras.push(draw_path(t[0], t[1], "#000000", 1).toFront());
-        depth_extras.push(draw_path(t[1], t[2], "#000000", 1).toFront())
-        depth_extras.push(draw_path(t[0], t[2], "#000000", 1).toFront())
+        depth_extras.push(draw_path(t[0], t[1], "#000000", 1));
+        depth_extras.push(draw_path(t[1], t[2], "#000000", 1));
+        depth_extras.push(draw_path(t[0], t[2], "#000000", 1));
     }
 }
 
@@ -668,6 +670,7 @@ function draw_point(x, y, color, radius, should_popover) {
                             depth_extras[i].remove();
                         }
                         $("#popover").fadeOut(50);
+                        keep_animating = fa
                     }
                 );
     }
