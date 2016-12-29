@@ -20,22 +20,31 @@ body {
     color: #F5F5F5;
     background-color: #424242;
     font-family: 'Inconsolata', sans-serif;
+    margin-bottom: 0px;
+}
+
+#viz {
+    height: calc(100% - 70px);
 }
 
 #plane {
     margin: 5px auto;
     background-color: #F9F9F9;
-    height: calc(100% - 180px);
+    height: calc(100% - 100px);
     width: 100%;
     max-width: 1200px;
     max-height: 800px;
     -webkit-tap-highlight-color: rgba(0,0,0,0);
 }
 
+#footer {
+    font-size: 14px;
+}
+
 .button {
     display: inline-block;
     text-decoration: none;
-    margin: 10px 5px;
+    margin: 7px 5px;
     text-align: center;
     padding: 5px;
     width: 100px;
