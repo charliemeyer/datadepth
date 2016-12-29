@@ -9,6 +9,7 @@ var plane = document.getElementById("plane");
 var paper = Raphael(plane, paper_w, paper_h);
 var median_type = parseInt($("#medianpicker").val());
 $("#popover").hide();
+$("#info_popover").hide();
 var allow_popovers = true;
 
 // Graphics details
@@ -58,7 +59,10 @@ $(document).ready(function() {
         median_type = parseInt($(this).val());
         draw_median();
     });
+    $("#info").click(show_info);
+    $("#dismiss").click(dismiss_info);
     $(window).resize(function() {
+        dismiss_info();
         var old_w = paper_w;
         var old_h = paper_h;
         paper_w = $("#plane").width();
@@ -88,6 +92,21 @@ $(document).ready(function() {
 ////////////////////////////////////////////////////////////
 ////////////////////// Event Handlers //////////////////////
 ////////////////////////////////////////////////////////////
+
+function show_info() {
+    allow_popovers = false;
+    $("#info_popover").width(paper_w-20);
+    $("#info_popover").height(paper_h-20);
+    $("#info_popover").css("left", $('#plane').offset().left)
+                      .css("top", $('#plane').offset().top);
+
+    $("#info_popover").fadeIn(50);
+}
+
+function dismiss_info() {
+    allow_popovers = true;
+    $("#info_popover").fadeOut(50);
+}
 
 // Clear the points
 function clear_points() {

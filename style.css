@@ -40,6 +40,7 @@ body {
     padding: 5px;
     width: 100px;
     font-size: 14px;
+    color: white;
     box-shadow: 0 2px 4px rgba(0,0,0,0.16), 0 2px 4px rgba(0,0,0,0.23);
 }
 
@@ -74,6 +75,22 @@ body {
     box-shadow: 0 2px 4px rgba(0,0,0,0.16), 0 2px 4px rgba(0,0,0,0.23);
 }
 
+#info_popover {
+    font-size: 16px;
+    padding: 10px;
+    font-weight: bold;
+    overflow: hidden;
+    position: absolute;
+    z-index: 1000;
+    transition: background .25s ease-in-out;
+    -moz-transition: background .25s ease-in-out;
+    -webkit-transition: background .25s ease-in-out;
+    color: #212121;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.16), 0 2px 4px rgba(0,0,0,0.23);
+    background: rgba(249,249,249, 0.8);
+}
+
+
 a {
     color: #F5F5F5;
     text-decoration: none;
@@ -95,6 +112,7 @@ select {
     border: 0px;
     background: url(downarrow.png) 100% / 15% no-repeat #FFF;
     width: 200px;
+    border-radius: 0px;
 }
 
 option {
