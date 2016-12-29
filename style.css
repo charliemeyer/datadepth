@@ -91,13 +91,13 @@ select {
     font-family: 'Inconsolata', sans-serif;
     font-size: 14px;
     padding: 5px 0px 5px 5px;
-    font-weight: bold;
+    /*font-weight: bold;*/
     border: 0px;
     background: url(downarrow.png) 100% / 15% no-repeat #FFF;
     width: 200px;
 }
 
 option {
-    font-weight: bold;
+    /*font-weight: bold;*/
     padding: 6px;
 }

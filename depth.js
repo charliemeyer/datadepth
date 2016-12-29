@@ -12,7 +12,7 @@ $("#popover").hide();
 var allow_popovers = true;
 
 // Graphics details
-var point_size = 7;
+var point_size = 6;
 var median_size = 8;
 var proj_point_size = 4;
 var proj_median_size = 6;
@@ -181,18 +181,18 @@ function get_depth_description(point) {
                    "y rank: " + point.data("y_rank") +"/" + points.length;
             break;
         case 2:
+            animate_hulls(point.data("hull_i"));
             if (point.data("median")) {
                 return median_descs[median_type];
             }
             if (point.data("hull_i") == 100000) {
                 return "Inside innermost hull";
             } else {
-                animate_hulls(point.data("hull_i"));
                 return "On nested hull: " + point.data("hull_i");
             }
             break;
         case 3:
-            highlight_triangles();
+            highlight_triangles(point);
             if (point.data("median")) {
                 return median_descs[median_type] + "<br>Depth: " + point.data("depth");
             }
@@ -500,14 +500,16 @@ function draw_simplicial_median() {
 
     for(var i = 0; i < points.length; i++) {
         points_inside = 0;
+        triangles_inside = [];
         for (var j = 0; j < triangles.length; j++) {
             if (in_triangle({x:points[i].attr("cx"), y:points[i].attr("cy")}, triangles[j])) {
-
                 points_inside += 1;
+                triangles_inside.push(j);
             }
         }
         simp_depths.push(points_inside);
         points[i].data("simp_depth", points_inside);
+        points[i].data("triangles_inside", triangles_inside);
     }
 
     // for(var i = 0; i < inters.length; i++) {
@@ -529,6 +531,7 @@ function draw_simplicial_median() {
     } else {
         median.animate({cx: inters[median_point_i-points.length].x, cy: inters[median_point_i-points.length].y}, 200, function(){allow_popovers = true;})
     }
+    median.data("triangles_inside", points[median_point_i].data("triangles_inside"));
 }
 
 function index_of_max(l) {
@@ -564,6 +567,15 @@ function in_triangle(cand_p, t) {
     return ((s1 == s2) && (s2 == s3));
 }
 
+function highlight_triangles(point) {
+    var ts = point.data("triangles_inside");
+    for (var i = 0; i < ts.length; i++) {
+        var t = triangles[ts[i]];
+        depth_extras.push(draw_path(t[0], t[1], "#000000", 1).toFront());
+        depth_extras.push(draw_path(t[1], t[2], "#000000", 1).toFront())
+        depth_extras.push(draw_path(t[0], t[2], "#000000", 1).toFront())
+    }
+}
 
 ///////////////
 // Halfspace //
