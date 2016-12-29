@@ -61,7 +61,7 @@ var depth_extras_hidden = [];
 
 // Register all the event handlers
 $(document).ready(function() {
-    median = draw_point(paper_w/2, paper_h/2, "#F44336", 7, true).data("median", true);
+    median = draw_point(paper_w/2, paper_h/2, "#F44336", 7, true, false).data("median", true);
     $("#plane").click(handle_click);
     $("#clear_points").click(clear_points);
     $("#medianpicker").change(function(){
@@ -135,7 +135,7 @@ function clear_points() {
                     paper.clear();
                     cleanup();
                     points = [];
-                    median = draw_point(med_x, med_y, "#F44336", 7, true).data("median", true);
+                    median = draw_point(med_x, med_y, "#F44336", 7, true, false).data("median", true);
                     draw_median();
                 });
         }
@@ -148,7 +148,7 @@ function handle_click(e) {
     var x = event.clientX - rect.left;
     var y = event.clientY - rect.top;
 
-    new_point = draw_point(x, y, point_color, point_size, true);
+    new_point = draw_point(x, y, point_color, point_size, true, true);
     points.push(new_point);
 
     draw_median();
@@ -327,8 +327,8 @@ function draw_median_x_y() {
         xs.push({data: points[i].attr("cx"), i:i});
         ys.push({data: points[i].attr("cy"), i:i});
         if (!points[i].data("bogus_drawn")) {
-            x_bog = draw_point(points[i].attr("cx"), points[i].attr("cy"), "#9E9E9E", proj_point_size, false);
-            y_bog = draw_point(points[i].attr("cx"), points[i].attr("cy"), "#9E9E9E", proj_point_size, false);
+            x_bog = draw_point(points[i].attr("cx"), points[i].attr("cy"), "#9E9E9E", proj_point_size, false, false);
+            y_bog = draw_point(points[i].attr("cx"), points[i].attr("cy"), "#9E9E9E", proj_point_size, false, false);
             bogus_med_x_points.push(x_bog);
             bogus_med_y_points.push(y_bog);
             x_bog.animate({cy:paper_h-(proj_point_size)}, 200);
@@ -348,8 +348,8 @@ function draw_median_x_y() {
     }
 
     if (!bogus_medx && !bogus_medy) {
-        bogus_medx = draw_point(proj_median_size, paper_h-(proj_median_size), "#EF5350", proj_median_size, false);
-        bogus_medy = draw_point(proj_median_size, paper_h-(proj_median_size), "#EF5350", proj_median_size, false);
+        bogus_medx = draw_point(proj_median_size, paper_h-(proj_median_size), "#EF5350", proj_median_size, false, false);
+        bogus_medy = draw_point(proj_median_size, paper_h-(proj_median_size), "#EF5350", proj_median_size, false, false);
     }
     bogus_medx.animate({cx:med_x});
     bogus_medx.toFront();
@@ -545,7 +545,7 @@ function draw_simplicial_median() {
         points_inside = 0;
         triangles_inside = [];
         for (var j = 0; j < triangles.length; j++) {
-            if (in_triangle({x:points[i].attr("cx"), y:points[i].attr("cy")}, triangles[j])) {
+            if (in_triangle(points[i], triangles[j])) {
                 points_inside += 1;
                 triangles_inside.push(j);
             }
@@ -597,12 +597,18 @@ function index_of_max(l) {
 
 // it's a determinant or smth
 function t_sign (p1, p2, p3) {
-    return (p1.x - p3.attr("cx")) * (p2.attr("cy") - p3.attr("cy")) -
-           (p2.attr("cx") - p3.attr("cx")) * (p1.y - p3.attr("cy"));
+    return (p1.attr("cx") - p3.attr("cx")) * (p2.attr("cy") - p3.attr("cy")) -
+           (p2.attr("cx") - p3.attr("cx")) * (p1.attr("cy") - p3.attr("cy"));
 }
 
 // Return whether cand p is in the triangle t (array of 3 points)
 function in_triangle(cand_p, t) {
+    if (cand_p.data("point_i") == t[0].data("point_i") ||
+        cand_p.data("point_i") == t[1].data("point_i") ||
+        cand_p.data("point_i") == t[2].data("point_i")) {
+        return false;
+    }
+
     s1 = t_sign(cand_p, t[0], t[1]) < 0;
     s2 = t_sign(cand_p, t[1], t[2]) < 0;
     s3 = t_sign(cand_p, t[2], t[0]) < 0;
@@ -737,7 +743,7 @@ function sign(p1, p2, p3) {
 ////////////////////////
 
 // Draw point on canvas at x y with given color and radius
-function draw_point(x, y, color, radius, should_popover) {
+function draw_point(x, y, color, radius, should_popover, deletable) {
     var new_circ = paper.circle(x, y, radius).attr({fill: color, stroke: "#FFFFFF"});
     if (should_popover) {
         $(new_circ.node).hoverIntent(
@@ -769,6 +775,10 @@ function draw_point(x, y, color, radius, should_popover) {
                     }
                 );
     }
+    // todo: allow for point deletion
+    // if (deletable) {
+    //     $(new_circ.node).right
+    // }
     new_circ.data("point_i", points.length);
     return new_circ;
 }
