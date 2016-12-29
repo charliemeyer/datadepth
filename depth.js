@@ -1,47 +1,51 @@
-//////////////////////
-// Global Resources //
-//////////////////////
+//////////////////////////////////////////////////////////////
+////////////////////// Global Resources //////////////////////
+//////////////////////////////////////////////////////////////
 
+// Set up plane and popups
 var paper_w = $("#plane").width();
 var paper_h = $("#plane").height();
 var plane = document.getElementById("plane");
-$("#popover").hide();
-
 var paper = Raphael(plane, paper_w, paper_h);
-// paper.rect(0, 0, 800, 600, 10).attr({fill: "#F5F5F5", stroke: "none"});
-var point_size = 6;
+var median_type = parseInt($("#medianpicker").val());
+$("#popover").hide();
+var allow_popovers = true;
+
+// Graphics details
+var point_size = 7;
 var median_size = 8;
 var proj_point_size = 4;
 var proj_median_size = 6;
-var points = [];
 var point_color = "#212121";
-var median_type = parseInt($("#medianpicker").val());
+var hull_colors = ["#F57C00","#EF6C00","#E65100","#F4511E","#E64A19","#D84315", "#BF360C"];
+var hull_grays = ["#E0E0E0","#BDBDBD","#9E9E9E","#757575","#616161","#424242","#212121"];
+
+// Data for the median
 var last_median_type = -1;
 var median;
-var allow_popovers = true;
+var points = [];
 
-// median of medians 
+// median of medians extras
 var bogus_med_y_points = [];
 var bogus_med_x_points = [];
 var bogus_medx;
 var bogus_medy;
 
-// nested hulls 
+// nested hulls extras
 var hulls = [];
 var hull_lines = [];
-var hull_colors = ["#F57C00","#EF6C00","#E65100","#F4511E","#E64A19","#D84315", "#BF360C"];
 
-// simplicial median 
+// simplicial median extras
 var cg_lines = [];
 var triangles = [];
 var inters = [];
 var lines = [];
 var points_drawn = 0;
 
-// halfspace 
+// halfspace extras
 var h_space_lines = [];
 
-// extra stuff when hovering over point
+// Extra stuff for popovers
 var depth_extras = [];
 
 // Register all the event handlers
@@ -53,7 +57,7 @@ $(document).ready(function() {
         median_type = parseInt($(this).val());
         draw_median();
     });
-    $( window ).resize(function() {
+    $(window).resize(function() {
         old_w = paper_w;
         old_h = paper_h;
         paper_w = $("#plane").width();
@@ -80,9 +84,9 @@ $(document).ready(function() {
     });
 });
 
-////////////////////
-// Event Handlers //
-////////////////////
+////////////////////////////////////////////////////////////
+////////////////////// Event Handlers //////////////////////
+////////////////////////////////////////////////////////////
 
 // Clear the points
 function clear_points() {
@@ -152,6 +156,7 @@ function draw_median() {
     last_median_type = median_type;
 }
 
+// Returns a string to put in the popover box for a point
 function get_depth_description(point) {
     var median_descs = ["Mean", "Coordinate-wise median", "\"Nested hull\" median", "Simplicial median", "Halfspace median"]
 
@@ -187,12 +192,16 @@ function get_depth_description(point) {
             }
             break;
         case 3:
+            highlight_triangles();
             if (point.data("median")) {
                 return median_descs[median_type] + "<br>Depth: " + point.data("depth");
             }
             return "Simplicial depth: " + point.data("simp_depth");
             break;
         case 4:
+            if (point.data("median")) {
+                return median_descs[median_type] + "<br>Depth: " + point.data("depth");
+            }
             return "Halfspace depth: " + point.data("h_depth");
             break;    
         default:
@@ -248,9 +257,13 @@ function cleanup() {
     h_space_lines = [];
 }
 
-////////////////////////////////////// 
-// Different median implementations //
-//////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+//////////////////////////////////////// Different median implementations ////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////
+// Mean //
+//////////
 
 function draw_mean_point() {
     var mean_x = 0;
@@ -264,6 +277,10 @@ function draw_mean_point() {
     mean_y = mean_y / num_points;
     median.animate({cx: mean_x, cy: mean_y}, 200, function(){allow_popovers = true;});
 }
+
+////////////////////
+// Coordinatewise //
+////////////////////
 
 function draw_median_x_y() {
     var xs = []
@@ -305,6 +322,9 @@ function draw_median_x_y() {
     median.animate({cx: med_x, cy: med_y}, 200, function(){allow_popovers = true;});
 }
 
+//////////////////
+// Nested Hulls //
+//////////////////
 
 function draw_hull_median() {
     total_points = points.length;
@@ -396,7 +416,7 @@ function make_hull(hull_i) {
         first_hull_i = this_hull[this_hull.length-2];
         second_hull_i = this_hull[this_hull.length-1];
         
-        hull_lines.push(draw_path(points[first_hull_i], points[second_hull_i], "#000000", 1));
+        hull_lines.push(draw_path(points[first_hull_i], points[second_hull_i], hull_grays[hull_i % hull_colors.length], 1));
 
         for(var i = 0; i < points.length; i++) {
             if(i != first_hull_i && i != second_hull_i) {
@@ -413,15 +433,13 @@ function make_hull(hull_i) {
     }
 
     // close the hull
-    hull_lines.push(draw_path(points[this_hull[0]], points[this_hull[this_hull.length-1]], "#000000", 1));
+    hull_lines.push(draw_path(points[this_hull[0]], points[this_hull[this_hull.length-1]], hull_grays[hull_i % hull_colors.length], 1));
 
     return this_hull;
 }
 
 
 // DANGEROUS: this is now in parallel with the state of the points YIKES
-// exclude that index if it happens to be associated with a point with valid data under the key
-// given by exclude in its data dict
 function index_of_max_for_hull(l, hull_i) {
     if (l.length === 0) {
         return -1;
@@ -441,13 +459,15 @@ function index_of_max_for_hull(l, hull_i) {
 }
 
 function animate_hulls(hull_i) {
-    // for (var i = 0; i < +1; i++) {
-        for (var j = 0; j < hulls[hull_i].length; j++) {
-            points[j].animate({color:"#2196F3"});
-            depth_extras.push(draw_path(points[hulls[hull_i][j]], points[hulls[hull_i][(j+1)%hulls[hull_i].length]], hull_colors[hull_i % hull_colors.length], 3).toFront());
-        }
-    // }
+    for (var j = 0; j < hulls[hull_i].length; j++) {
+        points[j].animate({color:"#2196F3"});
+        depth_extras.push(draw_path(points[hulls[hull_i][j]], points[hulls[hull_i][(j+1)%hulls[hull_i].length]], "#000000", 3).toFront());
+    }
 }
+
+////////////////
+// Simplicial //
+////////////////
 
 // three cheers for n^6 time holy heack baby
 function draw_simplicial_median() {
@@ -459,7 +479,7 @@ function draw_simplicial_median() {
                         triangles.push([points[i], points[j], points[k]]);
                     }
                 }
-                cg_lines.push(draw_path(points[i], points[j], "#000000", 1));
+                cg_lines.push(draw_path(points[i], points[j], "#E0E0E0", 1));
                 // lines.push([points[i], points[j]]);
             }
         }
@@ -482,13 +502,13 @@ function draw_simplicial_median() {
         points_inside = 0;
         for (var j = 0; j < triangles.length; j++) {
             if (in_triangle({x:points[i].attr("cx"), y:points[i].attr("cy")}, triangles[j])) {
+
                 points_inside += 1;
             }
         }
         simp_depths.push(points_inside);
         points[i].data("simp_depth", points_inside);
     }
-
 
     // for(var i = 0; i < inters.length; i++) {
     //     points_inside = 0;
@@ -529,12 +549,6 @@ function index_of_max(l) {
     return max_i;
 }
 
-function sign (p1, p2, p3) {
-    return (p1.attr("cx") - p3.attr("cx")) * (p2.attr("cy") - p3.attr("cy")) -
-           (p2.attr("cx") - p3.attr("cx")) * (p1.attr("cy") - p3.attr("cy"));
-}
-
-
 // it's a determinant or smth
 function t_sign (p1, p2, p3) {
     return (p1.x - p3.attr("cx")) * (p2.attr("cy") - p3.attr("cy")) -
@@ -549,6 +563,11 @@ function in_triangle(cand_p, t) {
 
     return ((s1 == s2) && (s2 == s3));
 }
+
+
+///////////////
+// Halfspace //
+///////////////
 
 function draw_halfspace_median() {
     var h_depths = [];
@@ -602,23 +621,14 @@ function get_halfspace_depth(point_i) {
     return min_depth;
 }
 
-///////////////
-// Utilities //
-///////////////
-
-// Returns the median element in list of numbers l
-function get_median(l) {
-    l.sort(function(a,b){return a.data-b.data});
-    len = l.length;
-    if(len == 1) {
-        return l[0].data;
-    }
-    if(l.length % 2 != 0) {
-        return l[Math.floor(len/2)].data;
-    } else {
-        return (l[len/2-1].data+l[len/2].data)/2;
-    }
+function sign (p1, p2, p3) {
+    return (p1.attr("cx") - p3.attr("cx")) * (p2.attr("cy") - p3.attr("cy")) -
+           (p2.attr("cx") - p3.attr("cx")) * (p1.attr("cy") - p3.attr("cy"));
 }
+
+////////////////////////
+// Graphics Utilities //
+////////////////////////
 
 // Draw point on canvas at x y with given color and radius
 function draw_point(x, y, color, radius, should_popover) {
@@ -637,15 +647,15 @@ function draw_point(x, y, color, radius, should_popover) {
                             $("#popover").css("left", $('#plane').offset().left + x_on_paper-(popover_w/2))
                                          .css("top", $('#plane').offset().top+new_circ.attr("cy")-(15+popover_h));
 
-                            $("#popover").fadeIn(100);
+                            $("#popover").fadeIn(50);
                         }
                     },
                     function(){
-                        new_circ.animate({r:radius}, 100);
+                        new_circ.animate({r:radius}, 50);
                         for (var i = 0; i < depth_extras.length; i++) {
                             depth_extras[i].remove();
                         }
-                        $("#popover").fadeOut(100);
+                        $("#popover").fadeOut(50);
                     }
                 );
     }
@@ -653,7 +663,32 @@ function draw_point(x, y, color, radius, should_popover) {
     return new_circ;
 }
 
-// returns the angle p1, p2, p3, centered at p2
+function draw_path(p1, p2, color, stroke_width) {
+    p =paper.path(["M", p1.attr("cx"), p1.attr("cy"), "L", p2.attr("cx"), p2.attr("cy")]);
+    p.attr({stroke:color,"stroke-width":stroke_width});
+    p.toBack();
+    return p;
+}
+
+/////////////////////////
+// Data/Math Utilities //
+/////////////////////////
+
+// Returns the median element in list of numbers l
+function get_median(l) {
+    l.sort(function(a,b){return a.data-b.data});
+    len = l.length;
+    if(len == 1) {
+        return l[0].data;
+    }
+    if(l.length % 2 != 0) {
+        return l[Math.floor(len/2)].data;
+    } else {
+        return (l[len/2-1].data+l[len/2].data)/2;
+    }
+}
+
+// Returns the angle p1, p2, p3, centered at p2
 function angle_between3(p1,p2,p3) {
     x1 = p1.attr("cx");
     y1 = p1.attr("cy");
@@ -671,17 +706,9 @@ function angle_between3(p1,p2,p3) {
     return Math.acos((a*a+b*b-c*c)/(2*a*b))
 }
 
-function draw_path(p1, p2, color, stroke_width) {
-    p =paper.path(["M", p1.attr("cx"), p1.attr("cy"), "L", p2.attr("cx"), p2.attr("cy")]);
-    p.attr({stroke:color,"stroke-width":stroke_width});
-    p.toBack();
-    return p;
-}
-
 function dist(p1, p2) {
     return Math.round(Math.sqrt( (p1.attr("cx")-p2.attr("cx"))*(p1.attr("cx")-p2.attr("cx"))+(p1.attr("cy")-p2.attr("cy"))*(p1.attr("cy")-p2.attr("cy"))));
 }
-
 
 // lifted from https://www.topcoder.com/community/data-science/data-science-tutorials/geometry-concepts-line-intersection-and-its-applications/
 function line_intersection(p1, p2, p3, p4) {

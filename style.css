@@ -1,6 +1,12 @@
 html {
     height: 100%;
     overflow: hidden;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 h3,h4 {
@@ -12,13 +18,13 @@ body {
     text-align: center;
     color: #F5F5F5;
     background-color: #424242;
-    font-family: 'Inconsolata', monospace;
+    font-family: 'Inconsolata', sans-serif;
 }
 
 #plane {
-    margin: 0 auto;
-    background-color: #F5F5F5;
-    height: calc(100% - 150px);
+    margin: 5px auto;
+    background-color: #F9F9F9;
+    height: calc(100% - 180px);
     width: 100%;
     max-width: 1200px;
     max-height: 800px;
@@ -26,7 +32,7 @@ body {
 }
 
 .button {
-    background-color: #2196F3; 
+    background-color: #F44336; 
     display: inline-block;
     text-decoration: none;
     margin: 10px 5px;
@@ -39,7 +45,7 @@ body {
 
 .button:hover {
     color: white;
-    background-color: #1976D2;
+    background-color: #E53935;
     cursor: pointer;
     animation: buttonhover;
     animation-duration: .2s;
@@ -47,8 +53,8 @@ body {
 }
 
 @keyframes buttonhover{
-  from {background-color: #2196F3; box-shadow: 0 2px 4px rgba(0,0,0,0.16), 0 2px 4px rgba(0,0,0,0.23);}
-  to {background-color: #1976D2; box-shadow: 0 4px 8px rgba(0,0,0,0.19), 0 4px 8px rgba(0,0,0,0.23);}
+  from {background-color: #F44336; box-shadow: 0 2px 4px rgba(0,0,0,0.16), 0 2px 4px rgba(0,0,0,0.23);}
+  to {background-color: #E53935; box-shadow: 0 4px 8px rgba(0,0,0,0.19), 0 4px 8px rgba(0,0,0,0.23);}
 }
 
 #popover {
@@ -66,4 +72,32 @@ body {
     -webkit-transition: background .25s ease-in-out;
     color: #212121;
     box-shadow: 0 2px 4px rgba(0,0,0,0.16), 0 2px 4px rgba(0,0,0,0.23);
+}
+
+a {
+    color: #F5F5F5;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    font-family: 'Inconsolata', sans-serif;
+    font-size: 14px;
+    padding: 5px 0px 5px 5px;
+    font-weight: bold;
+    border: 0px;
+    background: url(downarrow.png) 100% / 15% no-repeat #FFF;
+    width: 200px;
+}
+
+option {
+    font-weight: bold;
+    padding: 6px;
 }
