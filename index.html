@@ -15,17 +15,16 @@
 	<body>
 		<h3>Data Depth</h3>
 		<div id="popover">ayy lmao</div>
-		<div id="info_popover"><h3 id='ip_title'></h3><span id='ip_content'></span><br><span class='button' id='dismiss'>Dismiss</span></div>
+		<div id="info_popover"><h3 id='ip_title'></h3><div id='ip_content'></div><span class='button' id='dismiss'>Dismiss</span></div>
 
 		<div id="plane"></div>
-		Center type: <select id="medianpicker">
-			<option value=0>Mean</option>
-			<option value=1>Coordinate-wise median</option>
-			<option value=2>"Nested Hull" median</option>
-			<option value=3>Simplicial median</option>
-			<option value=4>Halfspace median</option>
+		Depth: <select id="medianpicker">
+			<option value=1>Coordinate-wise</option>
+			<option value=2>Nested hull</option>
+			<option value=3>Simplicial</option>
+			<option value=4>Halfspace</option>
 		</select>
-		<span class='button' id='info'>Info</span><span class='button' id='clear_points'>Clear points</span></body><br><br>
+		<span class='button' id='info'>Info</span><span class='button' id='clear_points'>Clear points</span></body><br>
 		by <a href="http://charliemeyer.co">Charlie Meyer</a> |</span> Made using <a href="http://dmitrybaranovskiy.github.io/raphael/">Raphaël.js</a></h4>
 		<script src="depth.js"></script>
 	</body>

@@ -10,17 +10,17 @@ var paper = Raphael(plane, paper_w, paper_h);
 var median_type = parseInt($("#medianpicker").val());
 $("#popover").hide();
 $("#info_popover").hide();
-var median_descs = ["Mean", "Coordinate-wise median", "\"Nested hull\" median", "Simplicial median", "Halfspace median"];
+var median_descs = ["Coordinate-wise Depth", "Nested Hull Depth", "Simplicial Depth", "Halfspace Depth"];
 
 var median_descs_long = [
-    "The average of the points in the pointset. Not really a median!",
-    "The point with median x coordinate and median y coordinate",
-    "The point at the mean of points within the innermost convex hull",
-    "The point in the pointset that is inside the most triangles created by picking 3 points from the pointset",
-    "The point in the pointset for which the halfspace that cuts the pointset most unevenly through that point cuts most fairly."
+    "One easy definition of a 2D median of a point set is to pick the point whose x coordinate is the median of the x coordinates of the points, and whose y coordinate is the median of the y coordinates of the points. <br><br>However, this definition is suboptimal as it gives each point two unrelated quantities representing its depth, and these quantities change if we consider a different system of coordinates.",
+    "One algorithm for computing the 1D median is to recursively remove the minimum and maximum point until you are left with 1 or 2 points. (at which point you average these). <br><br>In 2D, the \"most extreme\" points in the pointset are those on the <b>convex hull</b>. To compute the nested hull median, you recursively peel off convex hulls of the pointset until 1 or 2 points remain (at which point you again average). <br><br>The nested hull depth of a point is defined as the number of hulls it is inside. Clearly, the nested hull median mazimizes this depth.",
+    "One property of the 1D median is that it is in the maximum number of open intervals made from pairs of points in the pointset. An interval in 1D is a special case of a <b>simplex</b>, and in 2D a simplex is a triangle. The simplicial median computed here is the point in the pointset contained in the most triangles created by triples of points from the pointset. <br><br>(Note: A better definition of the simplicial median is the point in space contained in the most triangles, but that is prohibitively expensive to compute in an interactive visualization)",
+    "A point in 1D cuts the real line into 2 halves. The 1D median has the property that there are an equal number of points in the pointset on either side of it. <br><br>In 2D, there are an infinite number of ways to split the plane with a line through a point. One side of such a split is called a <b>halfspace</b>. The halfspace depth of a point is the minimum number of points on one side of <i>any</i> halfspace through that point. The halfspace median is the point in the poinset with maximum halfspace depth."
 ];
 
 var allow_popovers = true;
+var intro_unread = true;
 
 // Graphics details
 var point_size = 6;
@@ -70,6 +70,7 @@ $(document).ready(function() {
         draw_median();
     });
     $("#info").click(show_info);
+    show_info();
     $("#dismiss").click(dismiss_info);
     $(window).resize(function() {
         dismiss_info();
@@ -105,13 +106,19 @@ $(document).ready(function() {
 
 function show_info() {
     allow_popovers = false;
+    if (points.length == 0 && intro_unread) {
+        $("#ip_title").html("What is data depth?");
+        $("#ip_content").html("Given a collection of points, it is natural to wonder how central a given point is. Statisticians call this property a point's <b>depth</b>. In 1D, the median of a pointset is a \"good\" measure of the center of data (its deepest point). With this tool, you can explore some definitions of data depth in 2D, and how each definition yields its own 2D generalization of \"median\" for the pointset.<br><br>Click anywhere to add points, and hover over points to see their depth.");
+    } else {
+        $("#ip_title").html(median_descs[median_type-1]);
+        $("#ip_content").html(median_descs_long[median_type-1]);   
+    }
+    intro_unread = false;
     $("#info_popover").width(paper_w-20);
     $("#info_popover").height(paper_h-20);
     $("#info_popover").css("left", $('#plane').offset().left)
                       .css("top", $('#plane').offset().top);
 
-    $("#ip_title").html(median_descs[median_type]);
-    $("#ip_content").html(median_descs_long[median_type]);
 
     $("#info_popover").fadeIn(50);
 }
@@ -170,9 +177,6 @@ function draw_median() {
 
     median.toFront();
     switch(median_type) {
-        case 0: 
-            draw_mean_point()
-            break;
         case 1:
             draw_median_x_y();
             break;
@@ -193,20 +197,17 @@ function draw_median() {
 
 // Returns a string to put in the popover box for a point
 function get_depth_description(point) {
+    var median_descs = ["Coordinate-wise median", "Nested hull median", "Simplicial median", "Halfspace median"];
     var desc = "";
     switch(median_type) {
-        case 0: 
-            if (point.data("median")) {
-                return median_descs[median_type];
-            }
-            depth_extras.push(draw_path(point, median, "#F44336", 1));
-            return dist(point, median) + " units from mean";
-            break;
         case 1:
+            if (points.length == 0) {
+                return median_descs[median_type - 1];
+            }
             if (point.data("median")) {
                 depth_extras.push(draw_path(point, bogus_medx, "#F44336", 1));
                 depth_extras.push(draw_path(point, bogus_medy, "#F44336", 1));
-                return median_descs[median_type];
+                return median_descs[median_type - 1];
             }
             depth_extras.push(draw_path(point, bogus_med_x_points[point.data("point_i")], "#F44336", 1));
             depth_extras.push(draw_path(point, bogus_med_y_points[point.data("point_i")], "#F44336", 1));
@@ -215,31 +216,31 @@ function get_depth_description(point) {
             break;
         case 2:
             if (point.data("median")) {
-                return median_descs[median_type];
+                return median_descs[median_type - 1];
             }
-            animate_hulls(point.data("hull_i"));
             if (point.data("hull_i") == 100000) {
                 return "Inside innermost hull";
             } else {
+                animate_hulls(point.data("hull_i"));
                 return "On nested hull: " + point.data("hull_i");
             }
             break;
         case 3:
             highlight_triangles(point);
             if (point.data("median")) {
-                return median_descs[median_type] + "<br>Depth: " + point.data("depth");
+                return median_descs[median_type - 1] + "<br>Depth: " + point.data("depth");
             }
             return "Simplicial depth: " + point.data("simp_depth");
             break;
         case 4:
             animate_halfspace(point);
             if (point.data("median")) {
-                return median_descs[median_type] + "<br>Depth: " + point.data("depth");
+                return median_descs[median_type - 1] + "<br>Depth: " + point.data("depth");
             }
             return "Halfspace depth: " + point.data("h_depth");
             break;    
         default:
-            alert("bad option for median type used " + median_type);
+            alert("bad option for median type used " + median_type - 1);
     }
 }
 
@@ -296,23 +297,6 @@ function cleanup() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
 //////////////////////////////////////// Different median implementations ////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//////////
-// Mean //
-//////////
-
-function draw_mean_point() {
-    var mean_x = 0;
-    var mean_y = 0;
-    var num_points = points.length;
-    for (var i = 0; i < num_points; i++) {
-        mean_x += points[i].attr("cx");
-        mean_y += points[i].attr("cy");
-    }
-    mean_x = mean_x / num_points;
-    mean_y = mean_y / num_points;
-    median.animate({cx: mean_x, cy: mean_y}, 200, function(){allow_popovers = true;});
-}
 
 ////////////////////
 // Coordinatewise //
@@ -511,21 +495,43 @@ function animate_hulls(hull_i) {
 
 // three cheers for n^6 time holy heack baby
 function draw_simplicial_median() {
-    for(var i = points_drawn; i < points.length; i++) {
-        var my_lines = [];
-        for(var j = 0; j < points.length; j++){
-            if (j != i) {
-                for(var k = j; k < points.length; k++){
-                    if (k != i && k != j) {
-                        triangles.push([points[i], points[j], points[k]]);
+    var my_lines = [];
+    if (points_drawn == 0) {
+        for (var pl = 1; pl < points.length+1; pl++){   
+            for(var i = pl-1; i < pl; i++) {
+                my_lines = [];
+                for(var j = 0; j < pl; j++){
+                    if (j != i) {
+                        for(var k = j; k < pl; k++){
+                            if (k != i && k != j) {
+                                triangles.push([points[i], points[j], points[k]]);
+                            }
+                        }
+                        cg_line = draw_path(points[i], points[j], "#E0E0E0", 1);
+                        my_lines.push(cg_line);
+                        lines.push([points[i], points[j]]);
                     }
                 }
-                cg_line = draw_path(points[i], points[j], "#E0E0E0", 1);
-                my_lines.push(cg_line);
-                lines.push([points[i], points[j]]);
+                cg_lines.push(my_lines); 
             }
         }
-        cg_lines.push(my_lines);
+    } else {
+        for(var i = points_drawn; i < points.length; i++) {
+            var my_lines = [];
+            for(var j = 0; j < points.length; j++){
+                if (j != i) {
+                    for(var k = j; k < points.length; k++){
+                        if (k != i && k != j) {
+                            triangles.push([points[i], points[j], points[k]]);
+                        }
+                    }
+                    cg_line = draw_path(points[i], points[j], "#E0E0E0", 1);
+                    my_lines.push(cg_line);
+                    lines.push([points[i], points[j]]);
+                }
+            }
+            cg_lines.push(my_lines);
+        }        
     }
 
     points_drawn = points.length;

@@ -67,6 +67,7 @@ body {
 }
 
 #info {
+    width: 60px;
     color: #424242;
     background-color: #F9F9F9;
 }
@@ -124,6 +125,12 @@ body {
     background: rgba(249,249,249, 0.8);
 }
 
+#ip_content {
+    margin: 0 auto;
+    max-width: 400px;
+    height: calc(100% - 100px);
+    text-align: justify;
+}
 
 a {
     color: #F5F5F5;
@@ -142,14 +149,12 @@ select {
     font-family: 'Inconsolata', sans-serif;
     font-size: 14px;
     padding: 5px 0px 5px 5px;
-    /*font-weight: bold;*/
     border: 0px;
     background: url(downarrow.png) 100% / 15% no-repeat #FFF;
-    width: 200px;
+    width: 140px;
     border-radius: 0px;
 }
 
 option {
-    /*font-weight: bold;*/
     padding: 6px;
 }
