@@ -10,6 +10,16 @@ var paper = Raphael(plane, paper_w, paper_h);
 var median_type = parseInt($("#medianpicker").val());
 $("#popover").hide();
 $("#info_popover").hide();
+var median_descs = ["Mean", "Coordinate-wise median", "\"Nested hull\" median", "Simplicial median", "Halfspace median"];
+
+var median_descs_long = [
+    "The average of the points in the pointset. Not really a median!",
+    "The point with median x coordinate and median y coordinate",
+    "The point at the mean of points within the innermost convex hull",
+    "The point in the pointset that is inside the most triangles created by picking 3 points from the pointset",
+    "The point in the pointset for which the halfspace that cuts the pointset most unevenly through that point cuts most fairly."
+];
+
 var allow_popovers = true;
 
 // Graphics details
@@ -18,7 +28,6 @@ var median_size = 8;
 var proj_point_size = 4;
 var proj_median_size = 6;
 var point_color = "#212121";
-var hull_colors = ["#F57C00","#EF6C00","#E65100","#F4511E","#E64A19","#D84315", "#BF360C"];
 var hull_grays = ["#E0E0E0","#BDBDBD","#9E9E9E","#757575","#616161","#424242","#212121"];
 
 // Data for the median
@@ -56,6 +65,7 @@ $(document).ready(function() {
     $("#plane").click(handle_click);
     $("#clear_points").click(clear_points);
     $("#medianpicker").change(function(){
+        dismiss_info();
         median_type = parseInt($(this).val());
         draw_median();
     });
@@ -100,6 +110,9 @@ function show_info() {
     $("#info_popover").css("left", $('#plane').offset().left)
                       .css("top", $('#plane').offset().top);
 
+    $("#ip_title").html(median_descs[median_type]);
+    $("#ip_content").html(median_descs_long[median_type]);
+
     $("#info_popover").fadeIn(50);
 }
 
@@ -110,6 +123,7 @@ function dismiss_info() {
 
 // Clear the points
 function clear_points() {
+    dismiss_info();
     med_x = median.attr("cx");
     med_y = median.attr("cy");
     for (var i = 0; i < points.length; i++) {
@@ -179,8 +193,6 @@ function draw_median() {
 
 // Returns a string to put in the popover box for a point
 function get_depth_description(point) {
-    var median_descs = ["Mean", "Coordinate-wise median", "\"Nested hull\" median", "Simplicial median", "Halfspace median"]
-
     var desc = "";
     switch(median_type) {
         case 0: 
@@ -440,7 +452,7 @@ function make_hull(hull_i) {
         first_hull_i = this_hull[this_hull.length-2];
         second_hull_i = this_hull[this_hull.length-1];
         
-        first_line = draw_path(points[first_hull_i], points[second_hull_i], hull_grays[hull_i % hull_colors.length], 1)
+        first_line = draw_path(points[first_hull_i], points[second_hull_i], hull_grays[hull_i % hull_grays.length], 1)
         hull_lines.push(first_line);
         points[first_hull_i].data("hull_line", first_line);
 
@@ -459,7 +471,7 @@ function make_hull(hull_i) {
     }
 
     // close the hull
-    closing_line = draw_path(points[this_hull[0]], points[this_hull[this_hull.length-1]], hull_grays[hull_i % hull_colors.length], 1);
+    closing_line = draw_path(points[this_hull[0]], points[this_hull[this_hull.length-1]], hull_grays[hull_i % hull_grays.length], 1);
     hull_lines.push(closing_line);
     points[this_hull[this_hull.length-1]].data("hull_line", closing_line);
 

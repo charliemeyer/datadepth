@@ -10,7 +10,8 @@ html {
 }
 
 h3,h4 {
-    margin: 10px;
+    margin: 15px;
+    font-weight: bold;
 }
 
 body {
@@ -78,14 +79,13 @@ body {
 #info_popover {
     font-size: 16px;
     padding: 10px;
-    font-weight: bold;
     overflow: hidden;
     position: absolute;
     z-index: 1000;
     transition: background .25s ease-in-out;
     -moz-transition: background .25s ease-in-out;
     -webkit-transition: background .25s ease-in-out;
-    color: #212121;
+    color: #000000;
     box-shadow: 0 2px 4px rgba(0,0,0,0.16), 0 2px 4px rgba(0,0,0,0.23);
     background: rgba(249,249,249, 0.8);
 }
