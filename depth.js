@@ -10,7 +10,6 @@ var paper = Raphael(plane, paper_w, paper_h);
 var median_type = parseInt($("#medianpicker").val());
 $("#popover").hide();
 var allow_popovers = true;
-var keep_animating = true;
 
 // Graphics details
 var point_size = 6;
@@ -48,6 +47,7 @@ var h_space_lines = [];
 
 // Extra stuff for popovers
 var depth_extras = [];
+var depth_extras_hidden = [];
 
 // Register all the event handlers
 $(document).ready(function() {
@@ -59,14 +59,14 @@ $(document).ready(function() {
         draw_median();
     });
     $(window).resize(function() {
-        old_w = paper_w;
-        old_h = paper_h;
+        var old_w = paper_w;
+        var old_h = paper_h;
         paper_w = $("#plane").width();
         paper_h = $("#plane").height();
         paper.setSize(paper_w, paper_h);
         cleanup();
-        x_scale = paper_w/old_w;
-        y_scale = paper_h/old_h;
+        var x_scale = paper_w/old_w;
+        var y_scale = paper_h/old_h;
         for (var i = 0; i < points.length; i++) {
             old_x = points[i].attr("cx");
             old_y = points[i].attr("cy");
@@ -183,10 +183,10 @@ function get_depth_description(point) {
                    "y rank: " + point.data("y_rank") +"/" + points.length;
             break;
         case 2:
-            animate_hulls(point.data("hull_i"));
             if (point.data("median")) {
                 return median_descs[median_type];
             }
+            animate_hulls(point.data("hull_i"));
             if (point.data("hull_i") == 100000) {
                 return "Inside innermost hull";
             } else {
@@ -201,6 +201,7 @@ function get_depth_description(point) {
             return "Simplicial depth: " + point.data("simp_depth");
             break;
         case 4:
+            animate_halfspace(point);
             if (point.data("median")) {
                 return median_descs[median_type] + "<br>Depth: " + point.data("depth");
             }
@@ -245,7 +246,9 @@ function cleanup() {
 
     // cleanup simplicial
     for(var i = 0; i < cg_lines.length; i++) {
-        cg_lines[i].remove();
+        for(var j = 0; j < cg_lines[i].length; j++) {
+            cg_lines[i][j].remove();
+        }
     }
     cg_lines = [];
     triangles = [];
@@ -418,7 +421,9 @@ function make_hull(hull_i) {
         first_hull_i = this_hull[this_hull.length-2];
         second_hull_i = this_hull[this_hull.length-1];
         
-        hull_lines.push(draw_path(points[first_hull_i], points[second_hull_i], hull_grays[hull_i % hull_colors.length], 1));
+        first_line = draw_path(points[first_hull_i], points[second_hull_i], hull_grays[hull_i % hull_colors.length], 1)
+        hull_lines.push(first_line);
+        points[first_hull_i].data("hull_line", first_line);
 
         for(var i = 0; i < points.length; i++) {
             if(i != first_hull_i && i != second_hull_i) {
@@ -435,7 +440,9 @@ function make_hull(hull_i) {
     }
 
     // close the hull
-    hull_lines.push(draw_path(points[this_hull[0]], points[this_hull[this_hull.length-1]], hull_grays[hull_i % hull_colors.length], 1));
+    closing_line = draw_path(points[this_hull[0]], points[this_hull[this_hull.length-1]], hull_grays[hull_i % hull_colors.length], 1);
+    hull_lines.push(closing_line);
+    points[this_hull[this_hull.length-1]].data("hull_line", closing_line);
 
     return this_hull;
 }
@@ -461,9 +468,9 @@ function index_of_max_for_hull(l, hull_i) {
 }
 
 function animate_hulls(hull_i) {
-    for (var j = 0; j < hulls[hull_i].length; j++) {
-        points[j].animate({color:"#2196F3"});
-        depth_extras.push(draw_path(points[hulls[hull_i][j]], points[hulls[hull_i][(j+1)%hulls[hull_i].length]], "#000000", 3));
+    for (var i = 0; i < hulls[hull_i].length; i++) {
+        depth_extras_hidden.push(points[hulls[hull_i][i]].data("hull_line").hide());
+        depth_extras.push(draw_path(points[hulls[hull_i][i]], points[hulls[hull_i][(i+1)%hulls[hull_i].length]], "#000000", 2));
     }
 }
 
@@ -474,6 +481,7 @@ function animate_hulls(hull_i) {
 // three cheers for n^6 time holy heack baby
 function draw_simplicial_median() {
     for(var i = points_drawn; i < points.length; i++) {
+        var my_lines = [];
         for(var j = 0; j < points.length; j++){
             if (j != i) {
                 for(var k = j; k < points.length; k++){
@@ -481,10 +489,12 @@ function draw_simplicial_median() {
                         triangles.push([points[i], points[j], points[k]]);
                     }
                 }
-                cg_lines.push(draw_path(points[i], points[j], "#E0E0E0", 1));
-                // lines.push([points[i], points[j]]);
+                cg_line = draw_path(points[i], points[j], "#E0E0E0", 1);
+                my_lines.push(cg_line);
+                lines.push([points[i], points[j]]);
             }
         }
+        cg_lines.push(my_lines);
     }
 
     points_drawn = points.length;
@@ -573,10 +583,21 @@ function highlight_triangles(point) {
     var ts = point.data("triangles_inside");
     for (var i = 0; i < ts.length; i++) {
         var t = triangles[ts[i]];
+        hide_underneath_lines(t);
         depth_extras.push(draw_path(t[0], t[1], "#000000", 1));
         depth_extras.push(draw_path(t[1], t[2], "#000000", 1));
         depth_extras.push(draw_path(t[0], t[2], "#000000", 1));
     }
+}
+
+function hide_underneath_lines(t) {
+    i1 = t[0].data("point_i");
+    i2 = t[1].data("point_i");
+    i3 = t[2].data("point_i");
+    tmp = [i1,i2,i3].sort(function(a,b){return (a-b);});
+    depth_extras_hidden.push(cg_lines[tmp[2]][tmp[1]].hide());
+    depth_extras_hidden.push(cg_lines[tmp[2]][tmp[0]].hide());
+    depth_extras_hidden.push(cg_lines[tmp[1]][tmp[0]].hide());
 }
 
 ///////////////
@@ -596,18 +617,24 @@ function draw_halfspace_median() {
     median_point = points[med_point_i];
     median.data("depth", h_depths[med_point_i]);
     median.animate({cx: median_point.attr("cx"), cy: median_point.attr("cy")}, 200, function(){allow_popovers = true;});
+    median.data("my_line", median_point.data("my_line"));
+    median.data("my_line_coords", median_point.data("my_line_coords"));
 }
 
 function get_halfspace_depth(point_i) {
     var lines = [];
     for (var i=0; i < points.length; i++) {
         if (i != point_i) {
-            lines.push([point_i, i]);
+            lines.push([{x:points[point_i].attr("cx"), y:points[point_i].attr("cy"), i: i}, {x:points[i].attr("cx")+15, y:points[i].attr("cy"), i: i}]);
+            lines.push([{x:points[point_i].attr("cx"), y:points[point_i].attr("cy"), i: i}, {x:points[i].attr("cx")-15, y:points[i].attr("cy"), i: i}]);
+            lines.push([{x:points[point_i].attr("cx"), y:points[point_i].attr("cy"), i: i}, {x:points[i].attr("cx"), y:points[i].attr("cy"), i: i}]);
+            lines.push([{x:points[point_i].attr("cx"), y:points[point_i].attr("cy"), i: i}, {x:points[i].attr("cx"), y:points[i].attr("cy")+15, i: i}]);
+            lines.push([{x:points[point_i].attr("cx"), y:points[point_i].attr("cy"), i: i}, {x:points[i].attr("cx"), y:points[i].attr("cy")-15, i: i}]);
         }
     }
 
-    var best_line = 0;
     var min_depth = 1000000;
+    var best_lines = [];
 
     for (var i=0; i < lines.length; i++) {
         var num_above = 0;
@@ -616,7 +643,7 @@ function get_halfspace_depth(point_i) {
         var l2 = lines[i][1];
         for (var j=0; j < points.length; j++) {
             if (j != l1 && j != l2) {
-                if(sign(points[l1], points[l2], points[j]) > 0) {
+                if(sign(l1, l2, {x:points[j].attr("cx"), y:points[j].attr("cy")}) > 0) {
                     num_above++;
                 } else {
                     num_below++;
@@ -625,19 +652,53 @@ function get_halfspace_depth(point_i) {
         }
         var depth = Math.min(num_above, num_below);
         if (depth < min_depth) {
+            best_lines = [lines[i]];
             min_depth = depth;
             best_line = i;
+        } else if (depth == min_depth) {
+            best_lines.push(lines[i]);
         }
     }
+    best_line_dists = [];
+    for (var i=0; i < best_lines.length; i++) {
+        best_line_dists.push(point_line_dist({x:points[best_lines[i][0].i].attr("cx"), y:points[best_lines[i][1].i].attr("cy")}, best_lines[i][0], best_lines[i][1]));
+    }
+    best_line_i = index_of_max(best_line_dists);
+    best_line = best_lines[best_line_i];
 
-    h_space_lines.push(draw_path(points[lines[best_line][0]], points[lines[best_line][1]], "#000000", 1));
+    new_line = draw_line(best_line[0], best_line[1], "#E0E0E0", 1);
+    h_space_lines.push(new_line);
     points[point_i].data("h_depth", min_depth);
+    points[point_i].data("my_line", new_line);
+    points[point_i].data("my_line_coords", [best_line[0], best_line[1]]);
     return min_depth;
 }
 
-function sign (p1, p2, p3) {
-    return (p1.attr("cx") - p3.attr("cx")) * (p2.attr("cy") - p3.attr("cy")) -
-           (p2.attr("cx") - p3.attr("cx")) * (p1.attr("cy") - p3.attr("cy"));
+// lifted from stack overflow http://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
+function point_line_dist(p, l1, l2) {
+    var len = dist2(l1, l2);
+    if (len == 0) {
+        return dist2(p, l1);
+    }
+    // project p onto the line 
+    var t = ((p.x - l1.x) * (l2.x - l1.x) + (p.y - l1.y) * (l2.y - l1.y)) / len;
+    t = Math.max(0, Math.min(1, t));
+    return Math.sqrt(dist2(p, {x: l1.x + t * (l2.x - l1.x),
+                     y: l1.y + t * (l2.y - l1.y)}));
+}
+
+function dist2(v, w) { 
+    return (v.x - w.x)*(v.x - w.x) + (v.y - w.y)*(v.y - w.y);
+}
+
+function animate_halfspace(point) {
+    depth_extras_hidden.push(point.data("my_line").hide());
+    depth_extras.push(draw_line(point.data("my_line_coords")[0], point.data("my_line_coords")[1], "#000000", 2));
+}
+
+function sign(p1, p2, p3) {
+    return (p1.x - p3.x) * (p2.y - p3.y) -
+           (p2.x - p3.x) * (p1.y - p3.y);
 }
 
 ////////////////////////
@@ -669,8 +730,11 @@ function draw_point(x, y, color, radius, should_popover) {
                         for (var i = 0; i < depth_extras.length; i++) {
                             depth_extras[i].remove();
                         }
+                        for (var i = 0; i < depth_extras_hidden.length; i++) {
+                            depth_extras_hidden[i].show();
+                        }
+                        
                         $("#popover").fadeOut(50);
-                        keep_animating = fa
                     }
                 );
     }
@@ -679,7 +743,7 @@ function draw_point(x, y, color, radius, should_popover) {
 }
 
 function draw_path(p1, p2, color, stroke_width) {
-    p =paper.path(["M", p1.attr("cx"), p1.attr("cy"), "L", p2.attr("cx"), p2.attr("cy")]);
+    p = paper.path(["M", p1.attr("cx"), p1.attr("cy"), "L", p2.attr("cx"), p2.attr("cy")]);
     p.attr({stroke:color,"stroke-width":stroke_width});
     p.toBack();
     return p;
@@ -762,32 +826,71 @@ function line_intersection(p1, p2, p3, p4) {
     return {x: inter_x, y: inter_y};
 }
 
-// // draw line through paper 
-// function draw_line(p1, p2, color, stroke_width) {
-//     x1 = p1.attr("cx");
-//     x2 = p2.attr("cx");
-//     y1 = p1.attr("cy");
-//     y2 = p2.attr("cy");
+// draw line through paper 
+function draw_line(p1, p2, color, stroke_width) {
+    x1 = p1.x;
+    x2 = p2.x;
+    y1 = p1.y;
+    y2 = p2.y;
 
-//     slope = (y2-y1)/(x1-x2);
+    pp1 = {x:x1, y:y1};
+    pp2 = {x:x2, y:y2};
 
-//     sides = [[{x:0, y:0},{x:0, y: paper_h}],
-//              [{x:0, y:0},{x:paper_w, y: 0}],
-//              [{x:paper_w, y:paper_h},{x:paper_w, y: 0}],
-//              [{x:paper_w, y:paper_h},{x:0, y: paper_h}]]
+    slope = (y2-y1)/(x1-x2);
 
+    sides = [[{x:0, y:0},{x:0, y: paper_h}], //l
+             [{x:0, y:0},{x:paper_w, y: 0}], //t
+             [{x:paper_w, y:paper_h},{x:paper_w, y: 0}], //r
+             [{x:paper_w, y:paper_h},{x:0, y: paper_h}]] //b
 
+    valid_points = [];
 
+    for (var i = 0; i < 4; i++) {
+        iter = line_intersection_2(pp1, pp2, sides[i][0], sides[i][1]);
+        if (iter.x != -1) {
+            valid_points.push(iter);
+        }
+    }
+    
+    p = paper.path(["M", valid_points[0].x, valid_points[0].y, "L", valid_points[1].x, valid_points[1].y]);
+    p.attr({stroke:color,"stroke-width":stroke_width});
+    p.toBack();
+    return p;
+}
 
-//     if () {
-//         line_start = 
-//         line_end = 
-//     } else {
-//         line_start = 
-//         line_end =
-//     }
+//smh
+function line_intersection_2(p1, p2, p3, p4) {
+    x1 = p1.x;
+    x2 = p2.x;
+    x3 = p3.x;
+    x4 = p4.x;
 
-//     return draw_path(line_start, line_end, color, stroke_width);
-// }
+    y1 = p1.y;
+    y2 = p2.y;
+    y3 = p3.y;
+    y4 = p4.y;
 
+    a1 = y2-y1;
+    b1 = x1-x2;
+    c1 = a1*x1+b1*y1;
 
+    a2 = y4-y3;
+    b2 = x3-x4;
+    c2 = a2*x3+b2*y3;
+
+    det = a1*b2-a2*b1;
+
+    inter_x = -1;
+    inter_y = -1;
+
+    if (det != 0) {
+        inter_x = (b2*c1-b1*c2)/det;
+        inter_y = (a1*c2-a2*c1)/det;
+    }
+
+    if (inter_x < Math.min(x1,x2,x3,x4) || inter_x > Math.max(x1,x2,x3,x4) || inter_y < Math.min(y1,y2,y3,y4) || inter_y > Math.max(y1,y2,y3,y4)) {
+        inter_x = -1;
+        inter_y = -1;
+    }
+    return {x: inter_x, y: inter_y};
+}
