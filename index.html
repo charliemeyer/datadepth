@@ -3,7 +3,7 @@
 	<head>
 		<meta charset="utf-8">
 		<title>Data Depth</title>
-		<link href="https://fonts.googleapis.com/css?family=Inconsolata" rel="stylesheet">
+		<link href="https://fonts.googleapis.com/css?family=Roboto+Mono" rel="stylesheet">
 		<link rel="stylesheet" type="text/css" href="style.css">
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
 		<script src="hoverIntent.js"></script>
@@ -15,16 +15,17 @@
 	<body>
 		<h3>Data Depth</h3>
 		<div id="popover">ayy lmao</div>
-		<div id="info_popover"><h3 id='ip_title'></h3><div id='ip_content'></div><span class='button' id='dismiss'>Dismiss</span></div>
+		<div id="info_popover"><h3 id='ip_title'></h3><div id='ip_content'></div><span class='button' id='start'>Start</span><span class='button' style='display:none' id='dismiss'>Dismiss</span></div>
 		<div id="viz">
 		<div id="plane"></div>
-		Depth: <select id="medianpicker">
+		<div id="controls" style='display: none;'>Depth: <select id="medianpicker">
 			<option value=1>Coordinate-wise</option>
 			<option value=2>Nested hull</option>
 			<option value=3>Simplicial</option>
 			<option value=4>Halfspace</option>
 		</select>
-		<span class='button' id='info'>Info</span><br><span class='button' id='clear_points'>Clear points</span></body>
+		<span class='button' id='info'>Info</span><br><span class='button' id='clear_points'>Clear points</span>
+		</div>
 		</div>
 		<div id='footer' style='margin:0px'>by <a href="http://charliemeyer.co">Charlie Meyer</a> |</span> Made using <a href="http://dmitrybaranovskiy.github.io/raphael/">Raphaël.js</a></h4></div>
 		<script src="depth.js"></script>
