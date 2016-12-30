@@ -160,8 +160,8 @@ function clear_points() {
 // Add the point where they clicked, recompute median
 function handle_click(e) {
     var rect = plane.getBoundingClientRect();
-    var x = event.clientX - rect.left;
-    var y = event.clientY - rect.top;
+    var x = e.clientX - rect.left;
+    var y = e.clientY - rect.top;
 
     new_point = draw_point(x, y, point_color, point_size, true, true);
     points.push(new_point);

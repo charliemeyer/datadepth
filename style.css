@@ -19,7 +19,7 @@ body {
     text-align: center;
     color: #F5F5F5;
     background-color: #424242;
-    font-family: 'Inconsolata', sans-serif;
+    font-family: 'Roboto', sans-serif;
     margin-bottom: 0px;
 }
 
@@ -121,7 +121,6 @@ body {
 #popover {
     font-size: 14px;
     padding: 6px;
-    font-weight: bold;
     overflow: hidden;
     max-height: 50px;
     max-width: 120px;
@@ -170,7 +169,7 @@ select {
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
-    font-family: 'Inconsolata', sans-serif;
+    font-family: 'Roboto', sans-serif;
     font-size: 14px;
     padding: 5px 0px 5px 5px;
     border: 0px;
