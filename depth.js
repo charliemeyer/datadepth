@@ -11,16 +11,16 @@ var median_type = parseInt($("#medianpicker").val());
 $("#popover").hide();
 $("#info_popover").hide();
 var median_descs = ["Coordinate-wise Depth", "Nested Hull Depth", "Simplicial Depth", "Halfspace Depth"];
-
 var median_descs_long = [
     "One easy definition of a 2D median of a point set is to pick the point whose x coordinate is the median of the x coordinates of the points, and whose y coordinate is the median of the y coordinates of the points. <br><br>In some contexts, this definition is suboptimal as it gives each point two unrelated quantities representing its depth, and these quantities change if we consider a different system of coordinates. However, if x and y values for a point have meaning on their own, this definition can be useful.",
     "One algorithm for computing the 1D median is to recursively remove the minimum and maximum point until you are left with 1 or 2 points. (at which point you average these). <br><br>In 2D, the \"most extreme\" points in the point set are those on the <b>convex hull</b>. To compute the nested hull median, you recursively peel off convex hulls of the point set until 1 or 2 points remain (at which point you again average). <br><br>The nested hull depth of a point is defined as the number of hulls it is inside. Clearly, the nested hull median maximizes this depth.",
     "One property of the 1D median is that it is in the maximum number of open intervals made from pairs of points in the point set. An interval in 1D is a special case of a <b>simplex</b>, and in 2D a simplex is a triangle. The simplicial median computed here is the point in the point set contained in the most triangles created by triples of points from the point set. <br><br>(Note: A better definition of the simplicial median is the point in space contained in the most triangles, but that is prohibitively expensive to compute in an interactive visualization)",
-    "A point in 1D cuts the real line into 2 halves. The 1D median has the property that there are an equal number of points in the point set on either side of it. <br><br>In 2D, there are an infinite number of ways to split the plane with a line through a point. One side of such a split is called a <b>halfspace</b>. The halfspace depth of a point is the minimum number of points on one side of <i>any</i> halfspace through that point. The halfspace median is the point in the point set with maximum halfspace depth."
+    "A point in 1D cuts the real line into 2 halves. One side of such a split is called a <b>halfspace</b>. The 1D median of a point set S has the property that there are an equal number of points from S in the halfspaces on either side of it. <br><br>In 2D, there are an infinite number of ways to split the plane into halfspaces with a line through a point. The halfspace depth of a point p in a set S is the minimum number of points from S on one side of <i>any</i> halfspace through p. The halfspace median is the point in S with maximum halfspace depth. Note that the 1D median has maximal halfspace depth!"
 ];
 
 var allow_popovers = true;
 var intro_unread = true;
+var dragging = false;
 
 // Graphics details
 var point_size = 6;
@@ -159,19 +159,22 @@ function clear_points() {
 
 // Add the point where they clicked, recompute median
 function handle_click(e) {
-    var rect = plane.getBoundingClientRect();
-    var x = e.clientX - rect.left;
-    var y = e.clientY - rect.top;
+    if (!dragging) {
+        var rect = plane.getBoundingClientRect();
+        var x = e.clientX - rect.left;
+        var y = e.clientY - rect.top;
 
-    new_point = draw_point(x, y, point_color, point_size, true, true);
-    points.push(new_point);
+        new_point = draw_point(x, y, point_color, point_size, true, true);
+        points.push(new_point);
 
-    draw_median();
+        draw_median();
+        
+    }
 }
 
 // Draws the median of points based on currently chosen definition
 // TODO: If you're going to simplicial and you had a ton of points, ptfo
-function draw_median() {
+function draw_median(fdone) {
     allow_popovers = false;
     if (points.length == 0) {
         median.animate({cx:paper_w/2, cy:paper_h/2}, 200);
@@ -186,21 +189,26 @@ function draw_median() {
     median.toFront();
     switch(median_type) {
         case 1:
-            draw_median_x_y();
+            newmedian = draw_median_x_y();
             break;
         case 2:
-            draw_hull_median();
+            newmedian = draw_hull_median();
             break;
         case 3:
-            draw_simplicial_median();
+            newmedian = draw_simplicial_median();
             break;
         case 4:
-            draw_halfspace_median();
+            newmedian = draw_halfspace_median();
             break;    
         default:
             alert("bad option for median type used " + median_type);
     }
     last_median_type = median_type;
+    if (fdone) {
+        median.animate({cx: newmedian.x, cy: newmedian.y}, 200, function(){allow_popovers = true; fdone();});
+    } else {
+        median.animate({cx: newmedian.x, cy: newmedian.y}, 200, function(){allow_popovers = true;});
+    }
 }
 
 // Returns a string to put in the popover box for a point
@@ -347,7 +355,7 @@ function draw_median_x_y() {
     bogus_medx.toFront();
     bogus_medy.animate({cy:med_y});
     bogus_medy.toFront();
-    median.animate({cx: med_x, cy: med_y}, 200, function(){allow_popovers = true;});
+    return {x: med_x, y: med_y};
 }
 
 //////////////////
@@ -398,7 +406,7 @@ function draw_hull_median() {
         }
     }
     median.data("depth", hull_i);
-    median.animate({cx: med_x / num_non_hull, cy: med_y / num_non_hull}, 200, function(){allow_popovers = true;});
+    return {x: med_x / num_non_hull, y: med_y / num_non_hull};
 }
 
 
@@ -583,12 +591,12 @@ function draw_simplicial_median() {
 
     median.data("depth", simp_depths[median_point_i]);
 
-    if (median_point_i < points.length) {
-        median.animate({cx: points[median_point_i].attr("cx"), cy: points[median_point_i].attr("cy")}, 200, function(){allow_popovers = true;});    
-    } else {
-        median.animate({cx: inters[median_point_i-points.length].x, cy: inters[median_point_i-points.length].y}, 200, function(){allow_popovers = true;})
-    }
     median.data("triangles_inside", points[median_point_i].data("triangles_inside"));
+    if (median_point_i < points.length) {
+        return {x: points[median_point_i].attr("cx"), y: points[median_point_i].attr("cy")};
+    } else {
+        return {x: inters[median_point_i-points.length].x, y: inters[median_point_i-points.length].y};
+    }
 }
 
 function index_of_max(l) {
@@ -667,9 +675,9 @@ function draw_halfspace_median() {
     med_point_i = index_of_max(h_depths)
     median_point = points[med_point_i];
     median.data("depth", h_depths[med_point_i]);
-    median.animate({cx: median_point.attr("cx"), cy: median_point.attr("cy")}, 200, function(){allow_popovers = true;});
     median.data("my_line", median_point.data("my_line"));
     median.data("my_line_coords", median_point.data("my_line_coords"));
+    return {x: median_point.attr("cx"), y: median_point.attr("cy")};
 }
 
 function get_halfspace_depth(point_i) {
@@ -763,7 +771,7 @@ function draw_point(x, y, color, radius, should_popover, deletable) {
         $(new_circ.node).hoverIntent(
                     function() {
                         new_circ.animate({r:radius+2}, 100);
-                        if (allow_popovers) {
+                        if (allow_popovers && !dragging) {
                             x_on_paper = new_circ.attr("cx");
                             y_on_paper = new_circ.attr("cy");
                             $("#popover").html(get_depth_description(new_circ));
@@ -789,10 +797,24 @@ function draw_point(x, y, color, radius, should_popover, deletable) {
                     }
                 );
     }
-    // todo: allow for point deletion
-    // if (deletable) {
-    //     $(new_circ.node).right
-    // }
+
+    if (deletable) {
+        new_circ.drag(
+            function(dx, dy){
+                if (dx && dy) {
+                    this.attr({cx:this.ox+dx, cy:this.oy+dy});
+                }
+            },
+            function(){
+                cleanup();
+                this.ox = this.attr("cx");
+                this.oy = this.attr("cy");
+                dragging = true;
+            },
+            function(){
+                draw_median(function() {dragging = false;});                
+            })
+    }
     new_circ.data("point_i", points.length);
     return new_circ;
 }
