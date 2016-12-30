@@ -13,7 +13,7 @@ $("#info_popover").hide();
 var median_descs = ["Coordinate-wise Depth", "Nested Hull Depth", "Simplicial Depth", "Halfspace Depth"];
 
 var median_descs_long = [
-    "One easy definition of a 2D median of a point set is to pick the point whose x coordinate is the median of the x coordinates of the points, and whose y coordinate is the median of the y coordinates of the points. <br><br>However, this definition is suboptimal as it gives each point two unrelated quantities representing its depth, and these quantities change if we consider a different system of coordinates.",
+    "One easy definition of a 2D median of a point set is to pick the point whose x coordinate is the median of the x coordinates of the points, and whose y coordinate is the median of the y coordinates of the points. <br><br>In some contexts, this definition is suboptimal as it gives each point two unrelated quantities representing its depth, and these quantities change if we consider a different system of coordinates. However, if x and y values for a point have meaning on their own, this definition can be useful.",
     "One algorithm for computing the 1D median is to recursively remove the minimum and maximum point until you are left with 1 or 2 points. (at which point you average these). <br><br>In 2D, the \"most extreme\" points in the point set are those on the <b>convex hull</b>. To compute the nested hull median, you recursively peel off convex hulls of the point set until 1 or 2 points remain (at which point you again average). <br><br>The nested hull depth of a point is defined as the number of hulls it is inside. Clearly, the nested hull median maximizes this depth.",
     "One property of the 1D median is that it is in the maximum number of open intervals made from pairs of points in the point set. An interval in 1D is a special case of a <b>simplex</b>, and in 2D a simplex is a triangle. The simplicial median computed here is the point in the point set contained in the most triangles created by triples of points from the point set. <br><br>(Note: A better definition of the simplicial median is the point in space contained in the most triangles, but that is prohibitively expensive to compute in an interactive visualization)",
     "A point in 1D cuts the real line into 2 halves. The 1D median has the property that there are an equal number of points in the point set on either side of it. <br><br>In 2D, there are an infinite number of ways to split the plane with a line through a point. One side of such a split is called a <b>halfspace</b>. The halfspace depth of a point is the minimum number of points on one side of <i>any</i> halfspace through that point. The halfspace median is the point in the point set with maximum halfspace depth."
@@ -115,7 +115,7 @@ function show_info() {
     allow_popovers = false;
     if (points.length == 0 && intro_unread) {
         $("#ip_title").html("What is data depth?");
-        $("#ip_content").html("The <b>depth</b> of a point in a point set is a measure of how central a point is. In 1D, the median of a point set is the deepest point according to several different definitions of depth. With this tool, you can explore some definitions of data depth in 2D, and how each definition yields its own 2D generalization of \"median\" for a point set.<br><br>Click anywhere to add points, and hover over points to see their depth.");
+        $("#ip_content").html("The <b>depth</b> of a point p in a point set S is a measure of how central p is with respect to S. In 1D, the median of a point set is the deepest point according to several different definitions of depth. With this tool, you can explore some definitions of data depth in 2D, and how each definition yields its own 2D generalization of \"median\" for a point set.<br><br>Click anywhere to add points, and hover over points to see their depth.");
     } else {
         $("#ip_title").html(median_descs[median_type-1]);
         $("#ip_content").html(median_descs_long[median_type-1]);   
@@ -906,7 +906,7 @@ function draw_line(p1, p2, color, stroke_width) {
             valid_points.push(iter);
         }
     }
-    
+
     p = paper.path(["M", valid_points[0].x, valid_points[0].y, "L", valid_points[1].x, valid_points[1].y]);
     p.attr({stroke:color,"stroke-width":stroke_width});
     p.toBack();
