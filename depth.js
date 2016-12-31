@@ -310,7 +310,7 @@ function get_depth_description(point) {
                 if (point.data("hull_i") == -1) {
                     return "Outside outermost convex hull";
                 } else {
-                    return "Inside nested hull: " + point.data("hull_i");
+                    return "Inside nested hull: " + (point.data("hull_i")+1);
                 }
             }
             if (point.data("hull_i") == 100000) {
