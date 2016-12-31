@@ -135,7 +135,7 @@ body {
 }
 
 #info_popover {
-    font-size: 16px;
+    font-size: 15px;
     padding: 20px;
     overflow: hidden;
     position: absolute;
@@ -148,10 +148,14 @@ body {
     background: rgba(249,249,249, 0.8);
 }
 
+#ip_title {
+    margin-top: 0px;
+}
+
 #ip_content {
     margin: 0 auto;
     max-width: 400px;
-    height: calc(100% - 100px);
+    height: calc(100% - 80px);
     text-align: justify;
 }
 
