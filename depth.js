@@ -666,29 +666,63 @@ function hide_underneath_lines(t) {
 function draw_halfspace_median() {
     var h_depths = [];
     if (points.length < 3) {
-        return;
+        return {x: points[0].attr("cx"), y: points[0].attr("cy")};
     }
+
+    // get halfspace depth at points
+
+    var lines = [];
 
     for (var i=0; i < points.length; i++) {
-        h_depths.push(get_halfspace_depth(i));
+        // for (var j=0; j < points.length; j++) {
+        //     if (i != j) {
+        //         lines.push([points[i], points[j]]);
+        //     }
+        // }            
+        h_depths.push(get_halfspace_depth(points[i].attr("cx"), points[i].attr("cy"), points[i], i));
     }
-    med_point_i = index_of_max(h_depths)
-    median_point = points[med_point_i];
+
+    // get halfspace depth at intersections
+    
+    var inters = [];
+
+    // for(var i = 0; i < lines.length; i++) {
+    //     for(var j = i; j < lines.length; j++) {
+    //         inter = line_intersection(lines[i][0], lines[i][1], lines[j][0], lines[j][1]);
+    //         if (inter.x != -1) {
+    //             inters.push(inter);
+    //         }
+    //     }
+    // }
+
+    // for(var i = 0; i < inters.length; i++) {
+    //     h_depths.push(get_halfspace_depth(inters[i].x, inters[i].y, inters[i], -1));
+    // }
+
+    med_point_i = index_of_max(h_depths);
     median.data("depth", h_depths[med_point_i]);
-    median.data("my_line", median_point.data("my_line"));
-    median.data("my_line_coords", median_point.data("my_line_coords"));
-    return {x: median_point.attr("cx"), y: median_point.attr("cy")};
+    if (med_point_i < points.length) {
+        median_point = points[med_point_i];
+        median.data("my_line", median_point.data("my_line"));
+        median.data("my_line_coords", median_point.data("my_line_coords"));
+        return {x: points[med_point_i].attr("cx"), y: points[med_point_i].attr("cy")};
+    } else {
+        median_point = inters[med_point_i-points.length];
+        median.data("my_line", median_point["my_line"]);
+        median.data("my_line_coords", median_point["my_line_coords"]);
+        return {x: median_point.x, y: median_point.y};
+    }
 }
 
-function get_halfspace_depth(point_i) {
+function get_halfspace_depth(x, y, point, point_i) {
     var lines = [];
     for (var i=0; i < points.length; i++) {
         if (i != point_i) {
-            lines.push([{x:points[point_i].attr("cx"), y:points[point_i].attr("cy"), i: i}, {x:points[i].attr("cx")+15, y:points[i].attr("cy"), i: i}]);
-            lines.push([{x:points[point_i].attr("cx"), y:points[point_i].attr("cy"), i: i}, {x:points[i].attr("cx")-15, y:points[i].attr("cy"), i: i}]);
-            lines.push([{x:points[point_i].attr("cx"), y:points[point_i].attr("cy"), i: i}, {x:points[i].attr("cx"), y:points[i].attr("cy"), i: i}]);
-            lines.push([{x:points[point_i].attr("cx"), y:points[point_i].attr("cy"), i: i}, {x:points[i].attr("cx"), y:points[i].attr("cy")+15, i: i}]);
-            lines.push([{x:points[point_i].attr("cx"), y:points[point_i].attr("cy"), i: i}, {x:points[i].attr("cx"), y:points[i].attr("cy")-15, i: i}]);
+            lines.push([{x:x, y:y, i: i}, {x:points[i].attr("cx")+15, y:points[i].attr("cy"), i: i}]);
+            lines.push([{x:x, y:y, i: i}, {x:points[i].attr("cx")-15, y:points[i].attr("cy"), i: i}]);
+            lines.push([{x:x, y:y, i: i}, {x:points[i].attr("cx"), y:points[i].attr("cy"), i: i}]);
+            lines.push([{x:x, y:y, i: i}, {x:points[i].attr("cx"), y:points[i].attr("cy")+15, i: i}]);
+            lines.push([{x:x, y:y, i: i}, {x:points[i].attr("cx"), y:points[i].attr("cy")-15, i: i}]);
         }
     }
 
@@ -725,11 +759,17 @@ function get_halfspace_depth(point_i) {
     best_line_i = index_of_max(best_line_dists);
     best_line = best_lines[best_line_i];
 
-    new_line = draw_line(best_line[0], best_line[1], "#E0E0E0", 1);
-    h_space_lines.push(new_line);
-    points[point_i].data("h_depth", min_depth);
-    points[point_i].data("my_line", new_line);
-    points[point_i].data("my_line_coords", [best_line[0], best_line[1]]);
+    if (point_i != -1) {
+        new_line = draw_line(best_line[0], best_line[1], "#E0E0E0", 1);
+        h_space_lines.push(new_line);
+        points[point_i].data("h_depth", min_depth);
+        points[point_i].data("my_line", new_line);
+        points[point_i].data("my_line_coords", [best_line[0], best_line[1]]);
+    } else {
+        point["h_depth"] = min_depth;
+        point["my_line"] = new_line;
+        point["my_line_coords"] = [best_line[0], best_line[1]];
+    }
     return min_depth;
 }
 
