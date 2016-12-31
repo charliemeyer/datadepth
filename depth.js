@@ -484,17 +484,24 @@ function draw_hull_median() {
 
     med_x = 0;
     med_y = 0;
-    num_non_hull = 0;
+    num_innermost = 0;
 
     for (var i = 0; i < points.length; i++) {
-        if (points[i].data("hull_i") >= (hull_i - 1)) {
+        if (points[i].data("hull_i") > (hull_i)) {
             med_x += points[i].attr("cx");
             med_y += points[i].attr("cy");
-            num_non_hull += 1;
+            num_innermost += 1;
+        }
+    }
+    if (num_innermost == 0) {
+        for (var i = 0; i < new_hull.length; i++) {
+            med_x += points[new_hull[i]].attr("cx");
+            med_y += points[new_hull[i]].attr("cy");
+            num_innermost += 1;
         }
     }
     median.data("depth", hull_i);
-    return {x: med_x / num_non_hull, y: med_y / num_non_hull};
+    return {x: med_x / num_innermost, y: med_y / num_innermost};
 }
 
 
